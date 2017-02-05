@@ -141,6 +141,10 @@ libeasyrpg_player_la_SOURCES = \
 	src/options.h \
 	src/output.cpp \
 	src/output.h \
+	src/oneshot.cpp \
+	src/oneshot.h \
+	src/oneshot_ser.cpp \
+	src/oneshot_ser.h \
 	src/picojson.h \
 	src/pixel_format.h \
 	src/plane.cpp \
@@ -190,6 +194,8 @@ libeasyrpg_player_la_SOURCES = \
 	src/scene_name.h \
 	src/scene_order.cpp \
 	src/scene_order.h \
+	src/scene_osmb.cpp \
+	src/scene_osmb.h \
 	src/scene_save.cpp \
 	src/scene_save.h \
 	src/scene_shop.cpp \

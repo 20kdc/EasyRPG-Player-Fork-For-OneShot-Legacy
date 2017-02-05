@@ -19,6 +19,7 @@
 #include "window_help.h"
 #include "bitmap.h"
 #include "font.h"
+#include "scene.h"
 
 Window_Help::Window_Help(int ix, int iy, int iwidth, int iheight) :
 	Window_Base(ix, iy, iwidth, iheight),
@@ -36,6 +37,15 @@ void Window_Help::SetText(std::string text,	Text::Alignment align) {
 		this->text = text;
 		this->align = align;
 
-		contents->TextDraw(0, 2, Font::ColorDefault, text, align);
+		// NOTE: OneShot-specific hackery. Who wrote the font colour selection system? Why?
+		// In any case, this works around the fact that for some reason text goes black for no good reason,
+		// on ENDING_DEAD. This way is arguably much better because it means the player sees the "you killed niko" screen.
+		// Which they wouldn't get to before.
+		if (Scene::Find(Scene::End)) {
+			Color c(255, 255, 255, 255);
+			contents->TextDraw(0, 2, c, text);
+		} else {
+			contents->TextDraw(0, 2, Font::ColorDefault, text, align);
+		}
 	}
 }

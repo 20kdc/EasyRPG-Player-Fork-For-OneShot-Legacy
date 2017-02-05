@@ -1,3 +1,43 @@
+# NOTE:
+
+## This was modified by me (20kdc) in order to run the game 'OneShot' (freeware version, not the remake).
+## As such, it contains much hackery in order to emulate hackery used by that version of OneShot.
+
+## Furthermore, note that I'm unaffiliated with the developers of OneShot and the developers of EasyRPG-Player.
+
+## The responsibility for the various bits and pieces marked "OneShot-Specific Hackery" is mine unless contributed externally,
+## but is not that of either the EasyRPG-Player developers or the OneShot developers.
+
+## The original at https://github.com/EasyRPG/Player should always be used unless dealing with this specific game,
+## and really, this fork should only be used if you can't find any other alternative for a specific platform.
+
+## Finally, I reiterate that this is for the original freeware OneShot, not the remake on Steam.
+
+The code added for this may be considered a derivative of https://github.com/mathewv/oneshot-legacy , the license to which is:
+
+    The MIT License
+    
+    Copyright (c) 2015 Mathew Velasquez (http://mathew.link/)
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+    THE SOFTWARE.
+
+
 # EasyRPG Player
 
 EasyRPG Player is a game interpreter to play RPG Maker 2000, 2003 and EasyRPG

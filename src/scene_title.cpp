@@ -33,6 +33,7 @@
 #include "scene_load.h"
 #include "scene_map.h"
 #include "window_command.h"
+#include "oneshot.h"
 
 Scene_Title::Scene_Title() {
 	type = Scene::Title;
@@ -123,7 +124,15 @@ void Scene_Title::CreateTitleGraphic() {
 	if (!title && !Data::system.title_name.empty()) // No need to recreate Title on Resume
 	{
 		title.reset(new Sprite());
-		FileRequestAsync* request = AsyncHandler::RequestFile("Title", Data::system.title_name);
+		// NOTE: OneShot-specific hackery.
+		// Keep in mind that this entire fork is solely for OneShot use.
+		std::string str = Data::system.title_name;
+		if (str == "title") {
+			// This was handled differently in oneshot-legacy (file overrides & such all in one bit of logic), but not here.
+			// In this case just handle title management and such all in one function.
+			str = oneshot_titlescreen();
+		}
+		FileRequestAsync* request = AsyncHandler::RequestFile("Title", str);
 		request_id = request->Bind(&Scene_Title::OnTitleSpriteReady, this);
 		request->Start();
 	}

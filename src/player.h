@@ -226,6 +226,9 @@ namespace Player {
 	/** Game title. */
 	extern std::string game_title;
 
+	/** Safe code, should start as -1. OneShot-Specific Hackery */
+	extern int safe_code;
+
 #ifdef EMSCRIPTEN
 	/** Name of game emscripten uses */
 	extern std::string emscripten_game_name;

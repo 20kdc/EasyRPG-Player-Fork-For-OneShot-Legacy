@@ -6,6 +6,7 @@
 /lib/liblcf/
 /lib/TestGame/
 /lib/RTP/
+/Oneshot/
 /.libs/
 .deps/
 CMakeCache.txt

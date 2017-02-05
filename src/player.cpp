@@ -72,6 +72,7 @@
 #include "scene_logo.h"
 #include "utils.h"
 #include "version.h"
+#include "oneshot.h"
 
 namespace Player {
 	bool exit_flag;
@@ -94,6 +95,8 @@ namespace Player {
 	std::string escape_symbol;
 	int engine;
 	std::string game_title;
+	/** Safe code, should start as -1. OneShot-Specific Hackery */
+	int safe_code;
 	int frames;
 #ifdef EMSCRIPTEN
 	std::string emscripten_game_name;
@@ -118,6 +121,10 @@ namespace {
 
 void Player::Init(int argc, char *argv[]) {
 	frames = 0;
+	// Get this done ASAP. OneShot-Specific Hackery
+	safe_code = -1;
+	oneshot_preinit();
+	//
 
 	// Display a nice version string
 	std::stringstream header;
@@ -315,7 +322,13 @@ void Player::Update(bool update_scene) {
 	DisplayUi->ProcessEvents();
 
 	if (exit_flag) {
-		Scene::PopUntil(Scene::Null);
+		// Don't let them out that easily.
+		if (oneshot_override_closing()) {
+			exit_flag = false;
+			update_scene = false; // And around we go
+		} else {
+			Scene::PopUntil(Scene::Null);
+		}
 	} else if (reset_flag) {
 		reset_flag = false;
 		if (Scene::Find(Scene::Title) && Scene::instance->type != Scene::Title) {
