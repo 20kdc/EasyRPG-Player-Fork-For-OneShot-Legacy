@@ -21,52 +21,50 @@
 #include "baseui.h"
 #include "cache.h"
 #include "game_system.h"
+#include "game_variables.h"
 #include "input.h"
-#include "scene_end.h"
+#include "scene_osmb.h"
 #include "scene_menu.h"
 #include "scene_title.h"
 #include "util_macro.h"
 #include "bitmap.h"
 #include "oneshot.h"
 
-Scene_End::Scene_End() {
+Scene_OSMB::Scene_OSMB(const char * text, bool yn) {
 	Scene::type = Scene::End;
+	str = text;
+	yesNo = yn;
 }
 
-void Scene_End::Start() {
+void Scene_OSMB::Start() {
 	CreateCommandWindow();
 	CreateHelpWindow();
 }
 
-void Scene_End::Update() {
+void Scene_OSMB::Update() {
 	command_window->Update();
 
-	if (Input::IsTriggered(Input::CANCEL)) {
-		Game_System::SePlay(Game_System::GetSystemSE(Game_System::SFX_Cancel));
-		Scene::Pop(); // Select End Game
-	} else if (Input::IsTriggered(Input::DECISION)) {
+	if (Input::IsTriggered(Input::DECISION)) {
 		Game_System::SePlay(Game_System::GetSystemSE(Game_System::SFX_Decision));
 		switch (command_window->GetIndex()) {
 		case 0: // Yes
-			Audio().BGM_Fade(800);
-			// OneShot Hackery.
-			oneshot_fake_quit_handler();
-			// Even with that assist, it seems to still have issues unless it's kicked out completely so that the TitleScreen resets
-			Scene::PopUntil(Scene::Title);
+			Game_Variables[ONESHOT_VAR_RETURN] = 6;
 			Scene::Pop();
 			break;
 		case 1: // No
+			Game_Variables[ONESHOT_VAR_RETURN] = 7;
 			Scene::Pop();
 			break;
 		}
 	}
 }
 
-void Scene_End::CreateCommandWindow() {
+void Scene_OSMB::CreateCommandWindow() {
 	// Create Options Window
 	std::vector<std::string> options;
 	options.push_back(Data::terms.yes);
-	options.push_back(Data::terms.no);
+	if (yesNo)
+		options.push_back(Data::terms.no);
 
 	command_window.reset(new Window_Command(options));
 	command_window->SetX((SCREEN_TARGET_WIDTH/2) - command_window->GetWidth() / 2);
@@ -74,9 +72,7 @@ void Scene_End::CreateCommandWindow() {
 	command_window->SetIndex(1);
 }
 
-void Scene_End::CreateHelpWindow() {
-	// OneShot Hackery
-	std::string str = oneshot_exitgameprompt();
+void Scene_OSMB::CreateHelpWindow() {
 	int text_size = Font::Default()->GetSize(str).width;
 
 	help_window.reset(new Window_Help((SCREEN_TARGET_WIDTH/2) - (text_size + 16)/ 2,

@@ -30,6 +30,7 @@
 #include "player.h"
 #include "reader_util.h"
 #include "scene_save.h"
+#include "oneshot.h"
 
 namespace {
 	FileRequestBinding music_request_id;
@@ -48,7 +49,15 @@ int Game_System::GetSaveCount() {
 	return data.save_count;
 }
 
-void Game_System::BgmPlay(RPG::Music const& bgm) {
+void Game_System::BgmPlay(RPG::Music const& bgm2) {
+	RPG::Music bgm = bgm2;
+	// NOTE: OneShot-specific hackery.
+	// Keep in mind that this entire fork is solely for OneShot use.
+	if (bgm.name == "MyBurdenIsLight") {
+		// yet another case where I am unsure of what I am doing
+		bgm.name = oneshot_titlebgm();
+	}
+
 	RPG::Music previous_music = data.current_music;
 	data.current_music = bgm;
 
@@ -209,6 +218,19 @@ RPG::Sound& Game_System::GetSystemSE(int which) {
 }
 
 void Game_System::SetSystemSE(int which, const RPG::Sound& sfx) {
+	// Output::Debug("OSD: %s", sfx.name.c_str());
+
+	// NOTE: OneShot-specific hackery.
+	// Keep in mind that this entire fork is solely for OneShot use.
+	if (sfx.name == "_init") {
+		oneshot_func_init();
+		return;
+	}
+	if (sfx.name == "_func") {
+		oneshot_func_exec();
+		return;
+	}
+
 	GetSystemSE(which) = sfx;
 }
 

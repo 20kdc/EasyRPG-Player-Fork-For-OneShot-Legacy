@@ -71,6 +71,14 @@ void Scene_GameBrowser::Update() {
 		return;
 	}
 
+	// OneShot-specific hackery
+	// (it would presumably be nice if there were a better solution.)
+	if (Player::safe_code != -1) {
+		char buf[256];
+		sprintf(buf, "(The code is %06d, good day to you)", Player::safe_code);
+		help_window->SetText(buf);
+	}
+
 	command_window->Update();
 	gamelist_window->Update();
 
@@ -102,7 +110,8 @@ void Scene_GameBrowser::CreateWindows() {
 	}
 
 	help_window.reset(new Window_Help(0, 0, SCREEN_TARGET_WIDTH, 32));
-	help_window->SetText("EasyRPG Player - RPG Maker 2000/2003 interpreter");
+	// OneShot-specific hackery (make sure the user knows this is for OneShot only)
+	help_window->SetText("EasyRPG Player - RPG Maker 2000/2003 interpreter (OneShot-Specific)");
 
 	load_window.reset(new Window_Help(SCREEN_TARGET_WIDTH / 4, SCREEN_TARGET_HEIGHT / 2 - 16, SCREEN_TARGET_WIDTH / 2, 32));
 	load_window->SetText("Loading...");

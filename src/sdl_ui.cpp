@@ -577,9 +577,6 @@ void SdlUi::ProcessEvents() {
 	// Poll SDL events and process them
 	while (SDL_PollEvent(&evnt)) {
 		ProcessEvent(evnt);
-
-		if (Player::exit_flag)
-			break;
 	}
 }
 
