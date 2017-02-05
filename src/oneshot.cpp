@@ -3,10 +3,12 @@
 #include "oneshot_ser.h" // For serialization
 #include "game_variables.h"
 #include "game_switches.h"
+#include "game_system.h"
 #include "scene.h"
 #include "scene_osmb.h" // messageboxes!
 #include "scene_end.h" // alt-f4 override
 #include "player.h" // For access to safe code
+#include "output.h" // Output::Debug()
 
 // This code is a derivative of the oneshot-legacy code.
 // The license to that code is:
@@ -37,6 +39,11 @@
 // However, they could smooth out the experience because we can't do meta-things on 3DS.
 // Your choice, `whoami`.
 
+// This option will replace the Game Browser title with the safe code when the document is supposed to appear.
+// The following define (ENTITY_AWARE_OF_EMULATION) assumes you have engaged this,
+//  hence it asks that the player sleep to allow them to exit the 
+#define GAME_BROWSER_SHOWS_SAFE_CODE
+
 // This option will replace STR_STILL_HAVING_TROUBLE with an altered message that hints to the location
 //  of the new safe code in the Game Browser. This is as best as I can do without altering game event-code.
 // #define ENTITY_AWARE_OF_EMULATION
@@ -55,14 +62,16 @@
 
 #define STR_ONESHOT                 "You only have one shot, %hs."
 #define STR_DO_YOU_UNDERSTAND       "Do you understand what this means?"
-#ifndef ENTITY_AWARE_OF_EMULATION
 #define STR_STILL_HAVING_TROUBLE    "Still having trouble? Want me to spell it out for you?"
-#else
-// This isn't great but it'll help ease out the UX differences required.
-// Further forks could make their own platform-specific ways of handling this.
-// The current method is to show the safe code in the Game Browser.
-#define STR_STILL_HAVING_TROUBLE    "Still having trouble? Maybe you should sleep for a bit...?"
-#endif
+// Used on platforms where "read that text document" isn't so practical (ENTITY_AWARE_OF_EMULATION)
+// The idea is this will convince the player to sleep, which will take them to the Game Browser,
+// which in the case of GAME_BROWSER_SHOWS_SAFE_CODE will lead them to the solution.
+// Notably, this has to happen NOW, before the Entity has started feeding the player
+//  what will turn out to be misinformation (the actual ingame scripts don't have a clue about any of this).
+// (NOTE: This still isn't great as the player might not know of the bed yet. Could read flags???)
+#define STR_STILL_HAVING_TROUBLE_EXTENDED1 "Still having trouble? Want me to spell it out for you?"
+#define STR_STILL_HAVING_TROUBLE_EXTENDED2 "Perhaps you should let Niko sleep for a while, as you ponder the issue."
+//
 #define STR_SURELY_YOU_KNOW         "Surely you know where to find it now?"
 #define STR_STILL_PLANNING          "You're still planning on saving the world, aren't you?"
 #define STR_SUFFERING               "The world is suffering."
@@ -136,8 +145,8 @@ void oneshot_preinit() {
 	//puts("OneShot preinit function called,");
 	//puts("if you are running this on the wrong game: this is your chance to back out.");
 	// To test safe_code logic
-	// (usually set to -1 on the line before the call here)
-	Player::safe_code = 1;
+	// (usually set to -1 on the line before the call here, which disables it.)
+	// Player::safe_code = 1;
 }
 
 void oneshot_func_init() {
@@ -187,6 +196,15 @@ static void func_MessageBox() {
 		util_messagebox(STR_DO_YOU_UNDERSTAND, "", MESSAGE_QUESTION);
 		break;
 	case 2:
+#ifndef ENTITY_AWARE_OF_EMULATION
+		util_messagebox(STR_STILL_HAVING_TROUBLE, "", MESSAGE_QUESTION);
+#else
+// This isn't great but it'll help ease out the UX differences required.
+// Further forks could make their own platform-specific ways of handling this.
+// The current method is to show the safe code in the Game Browser.
+		util_messagebox(STR_STILL_HAVING_TROUBLE_EXTENDED1, "", MESSAGE_INFO);
+		util_messagebox(STR_STILL_HAVING_TROUBLE_EXTENDED2, "", MESSAGE_INFO);
+#endif
 		util_messagebox(STR_STILL_HAVING_TROUBLE, "", MESSAGE_QUESTION);
 		break;
 	case 3:
@@ -195,7 +213,7 @@ static void func_MessageBox() {
 		util_messagebox(buff, "", MESSAGE_INFO);
 #else
 		util_messagebox(STR_SURELY_YOU_KNOW, "", MESSAGE_QUESTION);
-#end
+#endif
 		break;
 	case 4:
 		util_messagebox(STR_STILL_PLANNING, "", MESSAGE_INFO);
@@ -255,7 +273,9 @@ static void func_ReadItem() {
 }
 static void func_Document() {
 	// you're welcome
+#ifdef GAME_BROWSER_SHOWS_SAFE_CODE
 	Player::safe_code = Game_Variables[ONESHOT_VAR_SAFE_CODE];
+#endif
 }
 static void func_End() {
 	ending = Game_Variables[ONESHOT_VAR_ARG1];
@@ -289,8 +309,7 @@ void oneshot_func_exec() {
 	funcs[Game_Variables[ONESHOT_VAR_FUNC]]();
 }
 
-const char * oneshot_titlescreen() {
-	//puts("TitleScreen hit");
+static void oneshot_titlescreen_init() {
 	// Due to the incompatibility between OneShot's "the game closes",
 	//  and EasyRPG's "back to menu",
 	// this seems like the best solution until I have save/load implemented
@@ -302,8 +321,13 @@ const char * oneshot_titlescreen() {
 			ending = ENDING_DEJAVU;
 		util_saveEnding();
 	}
+	Output::Debug("Titlescreen code was hit. Loaded ending as %i.", ending);
 	isInGame = 0;
 	oneshot = 0;
+}
+
+const char * oneshot_titlescreen() {
+	oneshot_titlescreen_init();
 	if ((ending == ENDING_DEAD) && (!gameStarted)) {
 		return "title_dead";
 	} else if (ending == ENDING_TRAPPED) {
@@ -338,21 +362,24 @@ const char * oneshot_exitgameprompt() {
 		return t;
 	return "But you've only just started playing!";
 }
+
+// This function has the ability to stop the game from closing on request.
+// Use with care.
 int oneshot_override_closing() {
 	if (Scene::Find(Scene::Title)) {
 		const char * ccc = oneshot_closewindowprompt();
 		if (ccc == STR_YOU_KILLED_NIKO) {
 			Scene::PopUntil(Scene::Title);
 			Scene::Pop();
+			// Commence the guilt-tripping.
 			Scene::Push(std::make_shared<Scene_OSMB>(ccc, false));
-			// Just do this now
+			// and do this while we're waiting.
 			oneshot_fake_quit_handler();
 			return 1;
 		}
 		if (ccc) {
-			Scene::PopUntil(Scene::Title);
-			Scene::Pop();
 			Scene::Push(std::make_shared<Scene_End>());
+			// If the user ends the game from Scene_End, it should exit-to-gamebrowser.
 			return 1;
 		}
 	}
@@ -361,7 +388,11 @@ int oneshot_override_closing() {
 void oneshot_fake_quit_handler() {
 	// ---Pre-quit-stuffdoings (process detach handler)---
 	// (Given this tends to accidentally prevent death from working: Does this even get run???)
-	//util_saveEnding();
+	// (Ok, now some things are fixed this actually needs to be added again)
+	// (Ok, it seems this *is required* for the proper sequence of:
+	//  *kill niko* -> dead, says "you killed niko" ->
+	//  *magically comes back to life only after you've been informed that you murdered Niko*)
+	util_saveEnding();
 	// ---Post-quit-reset. This should reset everything as if the Player had been newly restarted.---
 	oneshot = 0;
 	ending = ENDING_BEGINNING;
