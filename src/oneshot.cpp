@@ -190,7 +190,7 @@ void oneshot_func_init() {
 static void func_DeliberatelyNYI() {
 }
 static void func_SetNameEntry() {
-	// NYI. Changes our internal record of the username to the C string "\\N[2]",
+	// Changes our internal record of the username to the C string "\\N[2]",
 	//  so that when we replace it in future or save it, that will be used.
 	// (I am not entirely sure how this 'escape-flag' method is meant to be saved.)
 	strcpy(username, "\\N[2]");
@@ -276,6 +276,10 @@ static void func_Save() {
 	int32_t vars[200];
 	for (int i = 0; i < 100; i++)
 		vars[i] = Game_Variables[i + 1] ? 1 : 0;
+
+	if (usernameSize == 5)
+		if (!strcmp(username, "\\N[0]"))
+			usernameSize = 0;
 	oneshot_ser_saveBegin(switches, vars, username, usernameSize);
 }
 static void func_WriteItem() {
@@ -293,13 +297,18 @@ static void func_Load() {
 	uint8_t switches[200];
 	int32_t vars[200];
 	int val = oneshot_ser_loadBegin(switches, vars, username, &usernameSize);
-	Game_Variables[ONESHOT_VAR_RETURN] = val;
-	if (val != 0) {
+	if (val) {
 		for (int i = 0; i < 200; i++)
 			Game_Switches[i + 1] = switches[i] != 0;
 		for (int i = 0; i < 100; i++)
 			Game_Variables[i + 1] = vars[i];
+		// Now clean up for what happens in func_Save
+		if (usernameSize == 0) {
+			func_SetNameEntry();
+			val = 2; // special return for this case.
+		}
 	}
+	Game_Variables[ONESHOT_VAR_RETURN] = val;
 
 	oneshot = 1;
 	util_updateQuitMessage();
@@ -307,7 +316,8 @@ static void func_Load() {
 }
 static void func_ReadItem() {
 	if ((Game_Variables[ONESHOT_VAR_RETURN] = oneshot_ser_loadItem()) == 0) {
-		// End of save.
+		// End of save-read, automatically wipes.
+		// oneshot_ser has no reason to need to know these quirks.
 		oneshot_ser_wipeSave();
 	}
 }
@@ -345,17 +355,17 @@ static void (*const funcs[])(void) = {
 	// If it's replaced with a player name or a player name entry tag depends on if SetNameEntry is used.
 	func_DeliberatelyNYI,
 	func_SetNameEntry,
-	func_ShakeWindow,
-	func_SetWallpaper,
+	func_ShakeWindow, // NYI
+	func_SetWallpaper, // NYI
 	func_MessageBox,
-	func_LeaveWindow,
+	func_LeaveWindow, // part-NYI
 	func_Save,
 	func_WriteItem,
 	func_Load,
 	func_ReadItem,
 	func_Document,
 	func_End,
-	func_SetCloseEnabled,
+	func_SetCloseEnabled, // NYI
 };
 
 void oneshot_func_exec() {
