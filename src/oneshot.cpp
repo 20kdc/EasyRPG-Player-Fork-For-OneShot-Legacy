@@ -1,6 +1,8 @@
+#include <string.h>
 #include <stdlib.h>
 #include "oneshot.h"
 #include "oneshot_ser.h" // For serialization
+#include "oneshot_info.h" // For text
 #include "game_variables.h"
 #include "game_switches.h"
 #include "game_system.h"
@@ -60,10 +62,12 @@
 //    if the code isn't actually visible anywhere.)
 // #define ABSOLUTELY_CHEAT_SINCE_WE_CANT_META
 
+// -- Start translatables --
+
 #define STR_ONESHOT                 "You only have one shot, %hs."
 #define STR_DO_YOU_UNDERSTAND       "Do you understand what this means?"
 #define STR_STILL_HAVING_TROUBLE    "Still having trouble? Want me to spell it out for you?"
-// Used on platforms where "read that text document" isn't so practical (ENTITY_AWARE_OF_EMULATION)
+// Used on platforms where "read that text document" isn't so practical via ENTITY_AWARE_OF_EMULATION.
 // The idea is this will convince the player to sleep, which will take them to the Game Browser,
 // which in the case of GAME_BROWSER_SHOWS_SAFE_CODE will lead them to the solution.
 // Notably, this has to happen NOW, before the Entity has started feeding the player
@@ -86,14 +90,16 @@
 #define STR_NIKO_WILL_DIE           "If you quit now, Niko will die. Continue?"
 #define STR_YOU_KILLED_NIKO         "You killed Niko."
 
+#define QUIT_MESSAGE            "But you only just started playing!"
+#define QUIT_MESSAGE_ONESHOT        "  Niko won't make it out alive."
+
+// -- End translatables --
+
 #define ENDING_BEGINNING 0
 #define ENDING_DEJAVU 1
 #define ENDING_DEAD 2
 #define ENDING_ESCAPED 3
 #define ENDING_TRAPPED 4
-
-#define QUIT_MESSAGE            "But you only just started playing!"
-#define QUIT_MESSAGE_ONESHOT        "  Niko won't make it out alive."
 
 static int oneshot = 0;
 static int ending = ENDING_BEGINNING;
@@ -103,6 +109,20 @@ static int forceEnding = 0;
 static int gameStarted = 0;
 static int isInGame = 0;
 
+// Notably, this is apparently both zero-terminated *and* size-restricted.
+// The following is a valid initialization for reference:
+
+// strcpy(username, "Pancake"); // 7-char string + 1 zero byte = 8
+// usernameSize = 8;
+
+// Notably, the player name entry isn't persisted.
+// Memory of the player's name will be lost when the player sleeps, if name entry is used.
+// (Let's just pretend Niko's forgetful.)
+
+static char username[256];
+static uint32_t usernameSize = sizeof(username);
+
+// The quit message pointer.
 static const char * quitMsgPtr = QUIT_MESSAGE;
 
 #define MESSAGE_INFO 0
@@ -157,20 +177,24 @@ void oneshot_func_init() {
 	for (int i = 0; i < 20; i++)
 		Game_Switches[i + 1] = false;
 	// Computer-player-name-thing needs doing
+	// For now use a test string that everybody testing will recognize
+	strcpy(username, "Pancake");
+	usernameSize = 8;
+	// Final bits & pieces
 	Game_Variables[ONESHOT_VAR_ENDING] = ending;
 	Game_Variables[ONESHOT_VAR_GEORGE] = ((rand() & 0x7FFF) % 6) + 1; // not quite accurate but ok
 	gameStarted = 1;
 	isInGame = 1;
 }
 
-static void func_GuessName() {
-	// NYI
-}
-static void func_SetName() {
-	// NYI
+static void func_DeliberatelyNYI() {
 }
 static void func_SetNameEntry() {
-	// NYI
+	// NYI. Changes our internal record of the username to the C string "\\N[2]",
+	//  so that when we replace it in future or save it, that will be used.
+	// (I am not entirely sure how this 'escape-flag' method is meant to be saved.)
+	strcpy(username, "\\N[2]");
+	usernameSize = 5;
 }
 static void func_ShakeWindow() {
 	// NYI
@@ -183,7 +207,7 @@ static void func_MessageBox() {
 	char buff[512];
 	switch (Game_Variables[ONESHOT_VAR_ARG1]) {
 	case 0:
-		sprintf(buff, STR_ONESHOT, "<FIX>");
+		sprintf(buff, STR_ONESHOT, username);
 		util_messagebox(buff, "", MESSAGE_INFO);
 		// Technically this happens a tad too early now but, whatever
 		oneshot = 1;
@@ -246,7 +270,13 @@ static void func_LeaveWindow() {
 	// NYI
 }
 static void func_Save() {
-	oneshot_ser_saveBegin();
+	uint8_t switches[200];
+	for (int i = 0; i < 200; i++)
+		switches[i] = Game_Switches[i + 1] ? 1 : 0;
+	int32_t vars[200];
+	for (int i = 0; i < 100; i++)
+		vars[i] = Game_Variables[i + 1] ? 1 : 0;
+	oneshot_ser_saveBegin(switches, vars, username, usernameSize);
 }
 static void func_WriteItem() {
 	int i = Game_Variables[ONESHOT_VAR_ARG1];
@@ -260,7 +290,17 @@ static void func_WriteItem() {
 	}
 }
 static void func_Load() {
-	Game_Variables[ONESHOT_VAR_RETURN] = oneshot_ser_loadBegin();
+	uint8_t switches[200];
+	int32_t vars[200];
+	int val = oneshot_ser_loadBegin(switches, vars, username, &usernameSize);
+	Game_Variables[ONESHOT_VAR_RETURN] = val;
+	if (val != 0) {
+		for (int i = 0; i < 200; i++)
+			Game_Switches[i + 1] = switches[i] != 0;
+		for (int i = 0; i < 100; i++)
+			Game_Variables[i + 1] = vars[i];
+	}
+
 	oneshot = 1;
 	util_updateQuitMessage();
 	ending = ENDING_DEAD;
@@ -271,11 +311,16 @@ static void func_ReadItem() {
 		oneshot_ser_wipeSave();
 	}
 }
+
 static void func_Document() {
+	// This is very big for hopefully obvious reasons.
+	char document_building_buffer[0x10000];
 	// you're welcome
 #ifdef GAME_BROWSER_SHOWS_SAFE_CODE
 	Player::safe_code = Game_Variables[ONESHOT_VAR_SAFE_CODE];
 #endif
+	sprintf(document_building_buffer, "%s%06d%s", oneshot_text_1, Game_Variables[ONESHOT_VAR_SAFE_CODE], oneshot_text_2);
+	oneshot_ser_document(document_building_buffer);
 }
 static void func_End() {
 	ending = Game_Variables[ONESHOT_VAR_ARG1];
@@ -289,20 +334,28 @@ static void func_SetCloseEnabled() {
 }
 
 static void (*const funcs[])(void) = {
-    func_GuessName,
-    func_SetName,
-    func_SetNameEntry,
-    func_ShakeWindow,
-    func_SetWallpaper,
-    func_MessageBox,
-    func_LeaveWindow,
-    func_Save,
-    func_WriteItem,
-    func_Load,
-    func_ReadItem,
-    func_Document,
-    func_End,
-    func_SetCloseEnabled,
+	// GuessName
+	// Replaces the particular area of memory used for the 'initial guess' (ProphetBot/etc. assume this)
+	//  of the player's name. Notably, this does NOT include most uses of player name.
+	// Presumably the idea here was that as this is implemented as a rough memory-scan,
+	//  the program should try to avoid potentially using the earlier name in a later slot or vice versa.
+	func_DeliberatelyNYI,
+	// SetName
+	// Replaces the particular area of memory used for the 'final version' of the player's name.
+	// If it's replaced with a player name or a player name entry tag depends on if SetNameEntry is used.
+	func_DeliberatelyNYI,
+	func_SetNameEntry,
+	func_ShakeWindow,
+	func_SetWallpaper,
+	func_MessageBox,
+	func_LeaveWindow,
+	func_Save,
+	func_WriteItem,
+	func_Load,
+	func_ReadItem,
+	func_Document,
+	func_End,
+	func_SetCloseEnabled,
 };
 
 void oneshot_func_exec() {
@@ -313,6 +366,7 @@ static void oneshot_titlescreen_init() {
 	// Due to the incompatibility between OneShot's "the game closes",
 	//  and EasyRPG's "back to menu",
 	// this seems like the best solution until I have save/load implemented
+	// (Actually it's the best solution I can think of given later work on meta-stuff)
 	ending = util_loadEnding();
 	if (ending <= ENDING_DEJAVU) {
 		if (oneshot)
@@ -356,7 +410,9 @@ const char * oneshot_closewindowprompt() {
 const char * oneshot_exitgameprompt() {
 	// Since 'exit game' now == 'close game' to prevent title caching issues,
 	// it's probably best just to do this.
-	// (Kind of relied upon anyway by oneshot_override_closing)
+	// (Kind of relied upon anyway by oneshot_override_closing,
+	//  because Scene_End always uses this no matter what.
+	//  An idea would be to work on Scene_End to make it like Scene_OSMB, taking a const char * ptr.)
 	const char * t = oneshot_closewindowprompt();
 	if (t)
 		return t;
@@ -400,4 +456,5 @@ void oneshot_fake_quit_handler() {
 	gameStarted = 0;
 	isInGame = 0;
 	quitMsgPtr = QUIT_MESSAGE;
+	usernameSize = sizeof(username);
 }
