@@ -2,6 +2,8 @@
 #ifndef _ONESHOT_H_
 #define _ONESHOT_H_
 
+#include <string>
+
 #define ONESHOT_VAR_FUNC 1
 #define ONESHOT_VAR_ARG1 2
 #define ONESHOT_VAR_ARG2 3
@@ -21,6 +23,9 @@ bool oneshot_func_exec();
 const char * oneshot_titlescreen();
 const char * oneshot_titlebgm();
 const char * oneshot_exitgameprompt();
+
+std::string oneshot_process_text(const std::string & inp);
+
 int oneshot_override_closing();
 // used to patch over an inconsistency(?) between RPG Maker 2003 and EasyRPG
 void oneshot_fake_quit_handler();

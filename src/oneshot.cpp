@@ -1,16 +1,22 @@
 #include <string.h>
 #include <stdlib.h>
+//#include <iostream> // For text debug
+#include <sstream>
+#include <string>
 #include "oneshot.h"
 #include "oneshot_ser.h" // For serialization
 #include "oneshot_info.h" // For text
 #include "game_variables.h"
 #include "game_switches.h"
 #include "game_system.h"
+#include "game_map.h" // Used to nudge the Game_Map event stuff after load finishes.
 #include "scene.h"
 #include "scene_osmb.h" // messageboxes!
 #include "scene_end.h" // alt-f4 override
 #include "player.h" // For access to safe code
 #include "output.h" // Output::Debug()
+
+#include "main_data.h" // TPlayerNameT
 
 // This code is a derivative of the oneshot-legacy code.
 // The license to that code is:
@@ -122,8 +128,11 @@ static const char * quitMsgPtr = QUIT_MESSAGE;
 
 // Used to freeze/unfreeze the Script Interpreter during message boxes
 int oneshot_global_messagebox_count = 0;
-// Used as a flag by func_MessageBox to see if this is a re-executions
+// Used as a flag by func_MessageBox to see if this is a re-execution
 static bool messagebox_running = false;
+// OneShot performs an additional (and invalid) LoadItem for some reason
+// Let's just pretend that didn't happen
+static bool performing_load = false;
 
 #define MESSAGE_INFO 0
 #define MESSAGE_WARNING 0
@@ -181,6 +190,10 @@ void oneshot_func_init() {
 	// For now use a test string that everybody testing will recognize
 	strcpy(username, "Pancake");
 	usernameSize = 8;
+	// TPlayerNameT stuff happens now
+	std::stringstream unstr;
+	unstr << username;
+	Main_Data::game_data.actors[1].name = unstr.str();
 	// Final bits & pieces
 	Game_Variables[ONESHOT_VAR_ENDING] = ending;
 	Game_Variables[ONESHOT_VAR_GEORGE] = ((rand() & 0x7FFF) % 6) + 1; // not quite accurate but ok
@@ -200,11 +213,15 @@ static bool func_SetNameEntry() {
 	return true;
 }
 static bool func_ShakeWindow() {
-	// NYI
+	oneshot_ser_shakewindow();
 	return true;
 }
 static bool func_SetWallpaper() {
-	// NYI
+	if (Game_Variables[ONESHOT_VAR_ARG1] == 1) {
+		oneshot_ser_setwp(true);
+	} else {
+		oneshot_ser_setwp(false);
+	}
 	return true;
 }
 
@@ -278,8 +295,9 @@ static bool func_MessageBox() {
 	return false;
 }
 static bool func_LeaveWindow() {
+	// bye bye Niko...
 	ending = ENDING_ESCAPED;
-	// NYI
+	oneshot_ser_leavewindow();
 	return true;
 }
 static bool func_Save() {
@@ -305,6 +323,11 @@ static bool func_WriteItem() {
 		forceEnding = 1;
 		// Write the ending here in case it crashes
 		util_saveEnding();
+		// now we exit
+		Scene::PopUntil(Scene::Title);
+		Scene::Pop();
+		oneshot_fake_quit_handler();
+		return false;
 	}
 	return true;
 }
@@ -325,16 +348,20 @@ static bool func_Load() {
 	}
 	Game_Variables[ONESHOT_VAR_RETURN] = val;
 
+	performing_load = true;
 	oneshot = 1;
 	util_updateQuitMessage();
 	ending = ENDING_DEAD;
 	return true;
 }
 static bool func_ReadItem() {
+	if (!performing_load)
+		return true;
 	if ((Game_Variables[ONESHOT_VAR_RETURN] = oneshot_ser_loadItem()) == 0) {
 		// End of save-read, automatically wipes.
 		// oneshot_ser has no reason to need to know these quirks.
 		oneshot_ser_wipeSave();
+		performing_load = false;
 	}
 	return true;
 }
@@ -356,6 +383,7 @@ static bool func_End() {
 	util_saveEnding();
 	Scene::PopUntil(Scene::Title);
 	Scene::Pop();
+	oneshot_fake_quit_handler();
 	return false; // Try to get the script interpreter to break out
 }
 static bool func_SetCloseEnabled() {
@@ -390,7 +418,9 @@ static bool (*const funcs[])(void) = {
 };
 
 bool oneshot_func_exec() {
-	return funcs[Game_Variables[ONESHOT_VAR_FUNC]]();
+	bool r = funcs[Game_Variables[ONESHOT_VAR_FUNC]]();
+	Game_Map::SetNeedRefresh(Game_Map::Refresh_All);
+	return r;
 }
 
 static void oneshot_titlescreen_init() {
@@ -450,6 +480,26 @@ const char * oneshot_exitgameprompt() {
 	return "But you've only just started playing!";
 }
 
+std::string oneshot_process_text(const std::string & inp) {
+	// Used to quickly test name substitution.
+	// std::string work = "The person _PlayerName_xxxxxxxxxxxxxxxxxxxx is a tester.";
+	std::string work = inp;
+	std::string un = username;
+	//std::cout << work << '\n';
+	size_t found;
+	// _PlayerName_guess_xxxxxxxxxxxxxx == 
+	// 12341234123412341234123412341234
+	//    1   2   3   4   5   6   7   8 ==
+	// 32
+	while ((found = work.find("_PlayerName_guess_xxxxxxxxxxxxxx")) != std::string::npos) {
+		work.replace(found, 32, un);
+	}
+	while ((found = work.find("_PlayerName_xxxxxxxxxxxxxxxxxxxx")) != std::string::npos) {
+		work.replace(found, 32, un);
+	}
+	return work;
+}
+
 // This function has the ability to stop the game from closing on request.
 // Use with care.
 int oneshot_override_closing() {
@@ -494,4 +544,5 @@ void oneshot_fake_quit_handler() {
 	usernameSize = sizeof(username);
 	oneshot_global_messagebox_count = 0;
 	messagebox_running = false;
+	performing_load = false;
 }

@@ -570,7 +570,7 @@ bool Game_Interpreter::CommandShowMessage(RPG::EventCommand const& com) { // cod
 	Game_Message::owner_id = event_id;
 
 	// Set first line
-	Game_Message::texts.push_back(com.string);
+	Game_Message::texts.push_back(oneshot_process_text(com.string));
 	line_count++;
 
 	for (; index + 1 < list.size(); index++) {
@@ -578,7 +578,7 @@ bool Game_Interpreter::CommandShowMessage(RPG::EventCommand const& com) { // cod
 		if (list[index+1].code == Cmd::ShowMessage_2) {
 			// Add second (another) line
 			line_count++;
-			Game_Message::texts.push_back(list[index+1].string);
+			Game_Message::texts.push_back(oneshot_process_text(list[index+1].string));
 		} else {
 			// If next event command is show choices
 			if (list[index+1].code == Cmd::ShowChoice) {
@@ -1516,8 +1516,12 @@ bool Game_Interpreter::CommandChangeSystemSFX(RPG::EventCommand const& com) { //
 		oneshot_func_init();
 		return true;
 	}
-	if (com.string == "_func")
-		return oneshot_func_exec();
+	if (com.string == "_func") {
+		Output::Debug("Running OneShot Function %i, A1 %i", Game_Variables[ONESHOT_VAR_FUNC], Game_Variables[ONESHOT_VAR_ARG1]);
+		bool p = oneshot_func_exec();
+		Output::Debug("RET %i CONT. %s", Game_Variables[ONESHOT_VAR_RETURN], p ? "true" : "false");
+		return p;
+	}
 	
 	RPG::Sound sound;
 	int context = com.parameters[0];
@@ -2538,6 +2542,8 @@ bool Game_Interpreter::CommandChangeBattleCommands(RPG::EventCommand const& com)
 }
 
 bool Game_Interpreter::CommandExitGame(RPG::EventCommand const& /* com */) {
+	// Debugging code for the OneShot bed
+	Output::Debug("ExitGame was called.");
 	if (Scene::Find(Scene::GameBrowser)) {
 		Scene::PopUntil(Scene::GameBrowser);
 	} else {

@@ -27,6 +27,7 @@
 #include <string.h>
 #include "oneshot.h"
 #include "oneshot_ser.h"
+#include "output.h"
 
 static int oneshot_ser_ending = 0;
 
@@ -99,5 +100,24 @@ int oneshot_ser_loadItem() {
 }
 
 void oneshot_ser_document(char * string) {
-	// Nowhere to output the document to :(
+	// For debugging
+	Output::Debug("Document: ||%s||", string);
+}
+
+void oneshot_ser_setwp(bool enabled) {
+	// For debugging
+	if (enabled)
+		Output::Debug("Wallpaper: YES");
+	else
+		Output::Debug("Wallpaper: NO");
+}
+
+void oneshot_ser_shakewindow() {
+	// For debugging
+	Output::Debug("Shake window!");
+}
+
+void oneshot_ser_leavewindow() {
+	// For debugging
+	Output::Debug("Niko walks off the screen...");
 }
