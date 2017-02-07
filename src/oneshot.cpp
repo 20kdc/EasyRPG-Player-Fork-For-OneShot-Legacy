@@ -50,17 +50,12 @@
 //  of the new safe code in the Game Browser. This is as best as I can do without altering game event-code.
 // #define ENTITY_AWARE_OF_EMULATION
 
-// This option will replace STR_SURELY_YOU_KNOW with an absolute spoiler to the safe code,
+// This option will replace STR_DO_YOU_UNDERSTAND with an absolute spoiler to the safe code,
 //  without having to sleep in order to see it in the Game Browser.
-// Use only if there are significant uptake difficulties preventing things
-//  (Assuming a player goes in one direction and sticks with it,
-//   they'll either run into the safe or the metal rod first.
-//   If I recall correctly, anyway.
-//   Since running into the safe will trigger the conversation,
-//    though the player isn't stuck there,
-//    they are still not going to appreciate it
-//    if the code isn't actually visible anywhere.)
-// #define ABSOLUTELY_CHEAT_SINCE_WE_CANT_META
+// (SOME EDITS LATER: Basically necessary because the Entity
+//   refuses to let Niko sleep until a progression point.
+//  Fun for debugging. Not.)
+//#define ABSOLUTELY_CHEAT_SINCE_WE_CANT_META
 
 // -- Start translatables --
 
@@ -125,12 +120,18 @@ static uint32_t usernameSize = sizeof(username);
 // The quit message pointer.
 static const char * quitMsgPtr = QUIT_MESSAGE;
 
+// Used to freeze/unfreeze the Script Interpreter during message boxes
+int oneshot_global_messagebox_count = 0;
+// Used as a flag by func_MessageBox to see if this is a re-executions
+static bool messagebox_running = false;
+
 #define MESSAGE_INFO 0
 #define MESSAGE_WARNING 0
 #define MESSAGE_ERROR 0
 #define MESSAGE_QUESTION 1
 
 static void util_messagebox(const char * text, const char * title, int type) {
+	oneshot_global_messagebox_count++;
 	Scene::Push(std::make_shared<Scene_OSMB>(text, type == MESSAGE_QUESTION));
 }
 
@@ -187,23 +188,33 @@ void oneshot_func_init() {
 	isInGame = 1;
 }
 
-static void func_DeliberatelyNYI() {
+static bool func_DeliberatelyNYI() {
+	return true;
 }
-static void func_SetNameEntry() {
+static bool func_SetNameEntry() {
 	// Changes our internal record of the username to the C string "\\N[2]",
 	//  so that when we replace it in future or save it, that will be used.
 	// (I am not entirely sure how this 'escape-flag' method is meant to be saved.)
 	strcpy(username, "\\N[2]");
 	usernameSize = 5;
+	return true;
 }
-static void func_ShakeWindow() {
+static bool func_ShakeWindow() {
 	// NYI
+	return true;
 }
-static void func_SetWallpaper() {
+static bool func_SetWallpaper() {
 	// NYI
+	return true;
 }
 
-static void func_MessageBox() {
+static bool func_MessageBox() {
+	// Keep the script in limbo till all messageboxes have been confirmed.
+	if (messagebox_running) {
+		messagebox_running = oneshot_global_messagebox_count != 0;
+		return !messagebox_running;
+	}
+
 	char buff[512];
 	switch (Game_Variables[ONESHOT_VAR_ARG1]) {
 	case 0:
@@ -217,7 +228,12 @@ static void func_MessageBox() {
 		util_saveEnding();
 		break;
 	case 1:
+#ifdef ABSOLUTELY_CHEAT_SINCE_WE_CANT_META
+		sprintf(buff, "(Meta-element NYI, Code is %06d. --20kdc)", Player::safe_code);
+		util_messagebox(buff, "", MESSAGE_INFO);
+#else
 		util_messagebox(STR_DO_YOU_UNDERSTAND, "", MESSAGE_QUESTION);
+#endif
 		break;
 	case 2:
 #ifndef ENTITY_AWARE_OF_EMULATION
@@ -226,22 +242,16 @@ static void func_MessageBox() {
 // This isn't great but it'll help ease out the UX differences required.
 // Further forks could make their own platform-specific ways of handling this.
 // The current method is to show the safe code in the Game Browser.
-		util_messagebox(STR_STILL_HAVING_TROUBLE_EXTENDED1, "", MESSAGE_INFO);
 		util_messagebox(STR_STILL_HAVING_TROUBLE_EXTENDED2, "", MESSAGE_INFO);
+		util_messagebox(STR_STILL_HAVING_TROUBLE_EXTENDED1, "", MESSAGE_INFO);
 #endif
-		util_messagebox(STR_STILL_HAVING_TROUBLE, "", MESSAGE_QUESTION);
 		break;
 	case 3:
-#ifdef ABSOLUTELY_CHEAT_SINCE_WE_CANT_META
-		sprintf(buff, "(It's %06d. Could've just slept, the Game Browser shows it)", Player::safe_code);
-		util_messagebox(buff, "", MESSAGE_INFO);
-#else
 		util_messagebox(STR_SURELY_YOU_KNOW, "", MESSAGE_QUESTION);
-#endif
 		break;
 	case 4:
-		util_messagebox(STR_STILL_PLANNING, "", MESSAGE_INFO);
 		util_messagebox(STR_SUFFERING, "", MESSAGE_INFO);
+		util_messagebox(STR_STILL_PLANNING, "", MESSAGE_INFO);
 		break;
 	case 5:
 		util_messagebox(STR_GONE, "Fatal Error", MESSAGE_ERROR);
@@ -250,26 +260,29 @@ static void func_MessageBox() {
 		Scene::Pop();
 		break;
 	case 6:
-		util_messagebox(STR_WOULDA_REALIZED, "", MESSAGE_INFO);
-		util_messagebox(STR_HAD_ENOUGH, "", MESSAGE_WARNING);
-		util_messagebox(STR_DESTROY_IT, "", MESSAGE_WARNING);
 		util_messagebox(STR_QUIT_NOW, "", MESSAGE_ERROR);
+		util_messagebox(STR_DESTROY_IT, "", MESSAGE_WARNING);
+		util_messagebox(STR_HAD_ENOUGH, "", MESSAGE_WARNING);
+		util_messagebox(STR_WOULDA_REALIZED, "", MESSAGE_INFO);
 		break;
 	case 7:
-		util_messagebox(STR_BAD_DREAM, "", MESSAGE_INFO);
-		util_messagebox(STR_MISERABLE, "", MESSAGE_INFO);
 		util_messagebox(STR_YOU_MONSTER, "", MESSAGE_INFO);
+		util_messagebox(STR_MISERABLE, "", MESSAGE_INFO);
+		util_messagebox(STR_BAD_DREAM, "", MESSAGE_INFO);
 		break;
 	default:
 		util_messagebox("messagebox nyi, fixme", "", MESSAGE_INFO);
 		break;
 	}
+	messagebox_running = true;
+	return false;
 }
-static void func_LeaveWindow() {
+static bool func_LeaveWindow() {
 	ending = ENDING_ESCAPED;
 	// NYI
+	return true;
 }
-static void func_Save() {
+static bool func_Save() {
 	uint8_t switches[200];
 	for (int i = 0; i < 200; i++)
 		switches[i] = Game_Switches[i + 1] ? 1 : 0;
@@ -281,8 +294,9 @@ static void func_Save() {
 		if (!strcmp(username, "\\N[0]"))
 			usernameSize = 0;
 	oneshot_ser_saveBegin(switches, vars, username, usernameSize);
+	return true;
 }
-static void func_WriteItem() {
+static bool func_WriteItem() {
 	int i = Game_Variables[ONESHOT_VAR_ARG1];
 	oneshot_ser_saveItem(i);
 	if (i == 0) {
@@ -292,8 +306,9 @@ static void func_WriteItem() {
 		// Write the ending here in case it crashes
 		util_saveEnding();
 	}
+	return true;
 }
-static void func_Load() {
+static bool func_Load() {
 	uint8_t switches[200];
 	int32_t vars[200];
 	int val = oneshot_ser_loadBegin(switches, vars, username, &usernameSize);
@@ -313,16 +328,18 @@ static void func_Load() {
 	oneshot = 1;
 	util_updateQuitMessage();
 	ending = ENDING_DEAD;
+	return true;
 }
-static void func_ReadItem() {
+static bool func_ReadItem() {
 	if ((Game_Variables[ONESHOT_VAR_RETURN] = oneshot_ser_loadItem()) == 0) {
 		// End of save-read, automatically wipes.
 		// oneshot_ser has no reason to need to know these quirks.
 		oneshot_ser_wipeSave();
 	}
+	return true;
 }
 
-static void func_Document() {
+static bool func_Document() {
 	// This is very big for hopefully obvious reasons.
 	char document_building_buffer[0x10000];
 	// you're welcome
@@ -331,19 +348,22 @@ static void func_Document() {
 #endif
 	sprintf(document_building_buffer, "%s%06d%s", oneshot_text_1, Game_Variables[ONESHOT_VAR_SAFE_CODE], oneshot_text_2);
 	oneshot_ser_document(document_building_buffer);
+	return true;
 }
-static void func_End() {
+static bool func_End() {
 	ending = Game_Variables[ONESHOT_VAR_ARG1];
 	forceEnding = 1;
 	util_saveEnding();
 	Scene::PopUntil(Scene::Title);
 	Scene::Pop();
+	return false; // Try to get the script interpreter to break out
 }
-static void func_SetCloseEnabled() {
+static bool func_SetCloseEnabled() {
 	// NYI
+	return true;
 }
 
-static void (*const funcs[])(void) = {
+static bool (*const funcs[])(void) = {
 	// GuessName
 	// Replaces the particular area of memory used for the 'initial guess' (ProphetBot/etc. assume this)
 	//  of the player's name. Notably, this does NOT include most uses of player name.
@@ -366,10 +386,11 @@ static void (*const funcs[])(void) = {
 	func_Document,
 	func_End,
 	func_SetCloseEnabled, // NYI
+	// Function 14 would go here(?)
 };
 
-void oneshot_func_exec() {
-	funcs[Game_Variables[ONESHOT_VAR_FUNC]]();
+bool oneshot_func_exec() {
+	return funcs[Game_Variables[ONESHOT_VAR_FUNC]]();
 }
 
 static void oneshot_titlescreen_init() {
@@ -432,19 +453,23 @@ const char * oneshot_exitgameprompt() {
 // This function has the ability to stop the game from closing on request.
 // Use with care.
 int oneshot_override_closing() {
+	if (Scene::Find(Scene::End)) {
+		// Outright refuse for End or OSMB.
+		return 1;
+	}
 	if (Scene::Find(Scene::Title)) {
 		const char * ccc = oneshot_closewindowprompt();
 		if (ccc == STR_YOU_KILLED_NIKO) {
 			Scene::PopUntil(Scene::Title);
 			Scene::Pop();
 			// Commence the guilt-tripping.
-			Scene::Push(std::make_shared<Scene_OSMB>(ccc, false));
+			util_messagebox(ccc, "", MESSAGE_INFO);
 			// and do this while we're waiting.
 			oneshot_fake_quit_handler();
 			return 1;
 		}
 		if (ccc) {
-			Scene::Push(std::make_shared<Scene_End>());
+			Scene::Push(std::make_shared<Scene_End>(ccc, true));
 			// If the user ends the game from Scene_End, it should exit-to-gamebrowser.
 			return 1;
 		}
@@ -467,4 +492,6 @@ void oneshot_fake_quit_handler() {
 	isInGame = 0;
 	quitMsgPtr = QUIT_MESSAGE;
 	usernameSize = sizeof(username);
+	oneshot_global_messagebox_count = 0;
+	messagebox_running = false;
 }

@@ -218,19 +218,6 @@ RPG::Sound& Game_System::GetSystemSE(int which) {
 }
 
 void Game_System::SetSystemSE(int which, const RPG::Sound& sfx) {
-	// Output::Debug("OSD: %s", sfx.name.c_str());
-
-	// NOTE: OneShot-specific hackery.
-	// Keep in mind that this entire fork is solely for OneShot use.
-	if (sfx.name == "_init") {
-		oneshot_func_init();
-		return;
-	}
-	if (sfx.name == "_func") {
-		oneshot_func_exec();
-		return;
-	}
-
 	GetSystemSE(which) = sfx;
 }
 

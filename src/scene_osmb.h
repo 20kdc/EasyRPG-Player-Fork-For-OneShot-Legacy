@@ -22,6 +22,7 @@
 #include "scene.h"
 #include "window_command.h"
 #include "window_help.h"
+#include "async_handler.h"
 
 /**
  * Scene OSMB class.
@@ -37,6 +38,8 @@ public:
 
 	void Start() override;
 	void Update() override;
+
+	void OnWindowskinReady(FileRequestResult* result);
 
 	/**
 	 * Creates the Window displaying the yes and no option.
@@ -54,6 +57,7 @@ private:
 	std::unique_ptr<Window_Help> help_window;
 	/** Command window containing the yes and no option. */
 	std::unique_ptr<Window_Command> command_window;
+	FileRequestBinding request_id;
 	std::string str;
 	bool yesNo;
 };
