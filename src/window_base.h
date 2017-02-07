@@ -46,6 +46,8 @@ public:
 	 */
 	virtual void Update();
 
+	void ForceWindowskin(const std::string& name);
+
 	/**
 	 * Draw helpers.
 	 */
@@ -78,6 +80,7 @@ protected:
 	void OnFaceReady(FileRequestResult* result, int face_index, int cx, int cy, bool flip);
 
 	std::string windowskin_name;
+	bool windowskin_forced;
 
 	std::vector<FileRequestBinding> face_request_ids;
 };

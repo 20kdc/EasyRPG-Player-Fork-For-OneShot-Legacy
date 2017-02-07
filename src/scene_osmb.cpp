@@ -39,6 +39,14 @@ Scene_OSMB::Scene_OSMB(const char * text, bool yn) {
 void Scene_OSMB::Start() {
 	CreateCommandWindow();
 	CreateHelpWindow();
+	FileRequestAsync* request = AsyncHandler::RequestFile("System", "title");
+	request_id = request->Bind(&Scene_OSMB::OnWindowskinReady, this);
+	request->Start();
+}
+
+void Scene_OSMB::OnWindowskinReady(FileRequestResult* result) {
+	help_window->ForceWindowskin(result->file);
+	command_window->ForceWindowskin(result->file);
 }
 
 void Scene_OSMB::Update() {
@@ -50,10 +58,12 @@ void Scene_OSMB::Update() {
 		case 0: // Yes
 			Game_Variables[ONESHOT_VAR_RETURN] = 6;
 			Scene::Pop();
+			oneshot_global_messagebox_count--;
 			break;
 		case 1: // No
 			Game_Variables[ONESHOT_VAR_RETURN] = 7;
 			Scene::Pop();
+			oneshot_global_messagebox_count--;
 			break;
 		}
 	}

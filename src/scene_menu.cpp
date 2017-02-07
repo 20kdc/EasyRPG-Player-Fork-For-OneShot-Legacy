@@ -216,7 +216,7 @@ void Scene_Menu::UpdateCommand() {
 			break;
 		case Quit:
 			Game_System::SePlay(Game_System::GetSystemSE(Game_System::SFX_Decision));
-			Scene::Push(std::make_shared<Scene_End>());
+			Scene::Push(std::make_shared<Scene_End>((const char *) NULL, false));
 			break;
 		}
 	}

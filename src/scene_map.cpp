@@ -272,7 +272,7 @@ void Scene_Map::CallMenu() {
 	The intention was that you can still exit the game with ESC when the menu
 	is disabled. But this conflicts with parallel events listening for ESC.
 	else {
-		Scene::Push(std::make_shared<Scene_End>());
+		Scene::Push(std::make_shared<Scene_End>(NULL, false));
 	}*/
 }
 

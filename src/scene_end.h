@@ -22,6 +22,7 @@
 #include "scene.h"
 #include "window_command.h"
 #include "window_help.h"
+#include "async_handler.h"
 
 /**
  * Scene End class.
@@ -33,10 +34,12 @@ public:
 	/**
 	 * Constructor.
 	 */
-	Scene_End();
+	Scene_End(const char * text, bool dos);
 
 	void Start() override;
 	void Update() override;
+
+	void OnWindowskinReady(FileRequestResult* result);
 
 	/**
 	 * Creates the Window displaying the yes and no option.
@@ -50,6 +53,9 @@ public:
 	void CreateHelpWindow();
 
 private:
+	std::string text;
+	bool dows_override;
+	FileRequestBinding request_id;
 	/** Help window showing the confirmation text. */
 	std::unique_ptr<Window_Help> help_window;
 	/** Command window containing the yes and no option. */

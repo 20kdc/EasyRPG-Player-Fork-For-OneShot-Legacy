@@ -33,6 +33,7 @@ Window_Base::Window_Base(int x, int y, int width, int height) {
 	} else {
 		SetWindowskin(Bitmap::Create(160, 80, false));
 	}
+	windowskin_forced = false;
 
 	SetX(x);
 	SetY(y);
@@ -44,10 +45,11 @@ Window_Base::Window_Base(int x, int y, int width, int height) {
 
 void Window_Base::Update() {
 	Window::Update();
-	if (Game_System::GetSystemName() != windowskin_name) {
-		windowskin_name = Game_System::GetSystemName();
-		SetWindowskin(Cache::System(windowskin_name));
-	}
+	if (!windowskin_forced)
+		if (Game_System::GetSystemName() != windowskin_name) {
+			windowskin_name = Game_System::GetSystemName();
+			SetWindowskin(Cache::System(windowskin_name));
+		}
 	SetStretch(Game_System::GetMessageStretch() == RPG::System::Stretch_stretch);
 }
 
@@ -312,4 +314,9 @@ void Window_Base::DrawGauge(Game_Battler* actor, int cx, int cy) {
 
 	contents->StretchBlit(dst_rect, *system2, gauge_center, 255);
 	contents->StretchBlit(bar_rect, *system2, gauge_bar, 255);
+}
+
+void Window_Base::ForceWindowskin(const std::string& name) {
+	SetWindowskin(Cache::System(name));
+	windowskin_forced = true;
 }

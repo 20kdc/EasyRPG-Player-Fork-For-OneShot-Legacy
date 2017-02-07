@@ -29,13 +29,28 @@
 #include "bitmap.h"
 #include "oneshot.h"
 
-Scene_End::Scene_End() {
+Scene_End::Scene_End(const char * txt, bool dos) {
+	if (!txt) {
+		text = "<FIXME>";
+	} else {
+		text = txt;
+	}
 	Scene::type = Scene::End;
 }
 
 void Scene_End::Start() {
 	CreateCommandWindow();
 	CreateHelpWindow();
+	if (dows_override) {
+		FileRequestAsync* request = AsyncHandler::RequestFile("System", "title");
+		request_id = request->Bind(&Scene_End::OnWindowskinReady, this);
+		request->Start();
+	}
+}
+
+void Scene_End::OnWindowskinReady(FileRequestResult* result) {
+	help_window->ForceWindowskin(result->file);
+	command_window->ForceWindowskin(result->file);
 }
 
 void Scene_End::Update() {
@@ -76,12 +91,11 @@ void Scene_End::CreateCommandWindow() {
 
 void Scene_End::CreateHelpWindow() {
 	// OneShot Hackery
-	std::string str = oneshot_exitgameprompt();
-	int text_size = Font::Default()->GetSize(str).width;
+	int text_size = Font::Default()->GetSize(text).width;
 
 	help_window.reset(new Window_Help((SCREEN_TARGET_WIDTH/2) - (text_size + 16)/ 2,
 									  72, text_size + 16, 32));
-	help_window->SetText(str);
+	help_window->SetText(text);
 
 	command_window->SetHelpWindow(help_window.get());
 }

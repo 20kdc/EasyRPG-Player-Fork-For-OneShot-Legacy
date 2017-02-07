@@ -48,6 +48,7 @@
 #include "reader_util.h"
 #include "game_battle.h"
 #include "utils.h"
+#include "oneshot.h"
 
 Game_Interpreter::Game_Interpreter(int _depth, bool _main_flag) {
 	depth = _depth;
@@ -1509,6 +1510,15 @@ bool Game_Interpreter::CommandChangeSystemBGM(RPG::EventCommand const& com) { //
 }
 
 bool Game_Interpreter::CommandChangeSystemSFX(RPG::EventCommand const& com) { //code 10670
+	// NOTE: OneShot-specific hackery.
+	// Keep in mind that this entire fork is solely for OneShot use.
+	if (com.string == "_init") {
+		oneshot_func_init();
+		return true;
+	}
+	if (com.string == "_func")
+		return oneshot_func_exec();
+	
 	RPG::Sound sound;
 	int context = com.parameters[0];
 	sound.name = com.string;
