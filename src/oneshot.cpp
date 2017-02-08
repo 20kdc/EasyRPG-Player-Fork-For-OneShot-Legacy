@@ -304,9 +304,9 @@ static bool func_Save() {
 	uint8_t switches[200];
 	for (int i = 0; i < 200; i++)
 		switches[i] = Game_Switches[i + 1] ? 1 : 0;
-	int32_t vars[200];
+	int32_t vars[100];
 	for (int i = 0; i < 100; i++)
-		vars[i] = Game_Variables[i + 1] ? 1 : 0;
+		vars[i] = Game_Variables[i + 1];
 
 	if (usernameSize == 5)
 		if (!strcmp(username, "\\N[0]"))
@@ -333,7 +333,7 @@ static bool func_WriteItem() {
 }
 static bool func_Load() {
 	uint8_t switches[200];
-	int32_t vars[200];
+	int32_t vars[100];
 	int val = oneshot_ser_loadBegin(switches, vars, username, &usernameSize);
 	if (val) {
 		for (int i = 0; i < 200; i++)
