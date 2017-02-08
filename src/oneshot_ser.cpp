@@ -52,15 +52,15 @@ static FILE * oneshot_ser_workingfile = 0;
 #define ONESHOT_SER_SEQE ); ONESHOT_SER_ALERTFILEFAIL
 #define ONESHOT_SER_SEQET );
 
-static FILE * open_ending_with_mode(char * mode) {
+static FILE * open_ending_with_mode(const char * mode) {
 	ONESHOT_PRESAVE_COMMAND
 	ONESHOT_SER_SEQS ONESHOT_ENDING_PATH ONESHOT_SER_SEQE
 }
-static FILE * open_save_with_mode(char * mode) {
+static FILE * open_save_with_mode(const char * mode) {
 	ONESHOT_PRESAVE_COMMAND
 	ONESHOT_SER_SEQS ONESHOT_SAVE_PATH ONESHOT_SER_SEQE
 }
-static FILE * open_document_with_mode(char * mode) {
+static FILE * open_document_with_mode(const char * mode) {
 	ONESHOT_SER_SEQS ONESHOT_DOCUMENT_PATH ONESHOT_SER_SEQE
 }
 static void wipe_save() {
@@ -252,4 +252,17 @@ bool oneshot_ser_trymsgbox(const char * text, const char * title, int msg_type, 
 	// This basic backend is enough to run the game, but meta stuff doesn't work here.
 	// (let's just hope you remember that wallpaper 'kay)
 	return false;
+}
+
+void oneshot_ser_getcomputer(char * username, char * computer) {
+	// This always exists, even if it's a fixed string
+	snprintf(username, 256, "%s", ONESHOT_USERNAME_GUESSER);
+
+#ifndef ONESHOT_DATA_PERSISTENCE
+	// Assuming George is in effect, fake this!
+	computer[0] = (rand() % 0xFE) + 1;
+	computer[1] = 0;
+#else
+	snprintf(computer, 256, "%s", ONESHOT_HOSTNAME_GUESSER);
+#endif
 }

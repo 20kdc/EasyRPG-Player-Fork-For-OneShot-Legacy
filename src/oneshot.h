@@ -9,23 +9,46 @@
 // Is <stdio.h> FILE* available? (If not, the saved game is held in RAM.)
 #define ONESHOT_DATA_PERSISTENCE
 
-// This is configuration for saving
-// The defaults right now are awful, but... better ideas, anyone?
-// (Under some circumstances this could be changed.)
-#ifdef WINDOWS
-#define ONESHOT_PRESAVE_COMMAND system("mkdir %appdata%/Oneshot");
-#define ONESHOT_WIPESAVE_COMMAND _unlink(buf);
-#define ONESHOT_SAVE_PATH "%s/Oneshot/save", getenv("APPDATA")
-#define ONESHOT_ENDING_PATH "%s/Oneshot/ending", getenv("APPDATA")
+#ifdef ONESHOT_DATA_PERSISTENCE
+	// This is configuration for saving (oneshot_ser)
+	// The defaults right now are awful, but... better ideas, anyone?
+	// (Under some circumstances this could be changed.)
+	#ifdef WINDOWS
 
-#define ONESHOT_DOCUMENT_PATH "%s/My Documents/DOCUMENT.oneshot.txt", getenv("HOMEPATH")
+		#define ONESHOT_PRESAVE_COMMAND system("mkdir %appdata%/Oneshot");
+		#define ONESHOT_WIPESAVE_COMMAND _unlink(buf);
+		#define ONESHOT_SAVE_PATH "%s/Oneshot/save", getenv("APPDATA")
+		#define ONESHOT_ENDING_PATH "%s/Oneshot/ending", getenv("APPDATA")
+
+		#define ONESHOT_DOCUMENT_PATH "%s/My Documents/DOCUMENT.oneshot.txt", getenv("HOMEPATH")
+
+		#define ONESHOT_USERNAME_GUESSER getenv("USERNAME")
+		#define ONESHOT_HOSTNAME_GUESSER getenv("COMPUTERNAME")
+
+	#else
+
+		// for unlink
+		#include <unistd.h>
+
+		#define ONESHOT_PRESAVE_COMMAND system("mkdir -p ~/.config/Oneshot");
+		#define ONESHOT_WIPESAVE_COMMAND unlink(buf);
+		#define ONESHOT_SAVE_PATH "%s/.config/Oneshot/save", getenv("HOME")
+		#define ONESHOT_ENDING_PATH "%s/.config/Oneshot/ending", getenv("HOME")
+
+		#define ONESHOT_DOCUMENT_PATH "%s/DOCUMENT.oneshot.txt", getenv("HOME")
+
+		#define ONESHOT_USERNAME_GUESSER getenv("USER")
+		#define ONESHOT_HOSTNAME_GUESSER getenv("HOSTNAME")
+
+	#endif
 #else
-#define ONESHOT_PRESAVE_COMMAND system("mkdir -p ~/.config/Oneshot");
-#define ONESHOT_WIPESAVE_COMMAND unlink(buf);
-#define ONESHOT_SAVE_PATH "%s/.config/Oneshot/save", getenv("HOME")
-#define ONESHOT_ENDING_PATH "%s/.config/Oneshot/ending", getenv("HOME")
-
-#define ONESHOT_DOCUMENT_PATH "%s/DOCUMENT.oneshot.txt", getenv("HOME")
+	// This is required no matter what, but with data persistence
+	//  it uses getenv anyway so it can use it for these.
+	// Change the way things are handled there (like a sdcard .oneshot folder for Wii)
+	//  if you want data persistence but your platform can't work with the defines,
+	//  which is probably any platform other than the main quadrilateral of Mac/BSD/Linux/Windows.
+	// The HOSTNAME_GUESSER is deliberately randomized so VAR_GEORGE stuff comes out randomly.
+	#define ONESHOT_USERNAME_GUESSER "Pancake"
 #endif
 
 // Use SDL for messageboxes. (NYI)
@@ -33,13 +56,16 @@
 
 // -- The following options affect gameplay to handle lacking parts of platform support (oneshot_ser).
 
+// Note! You shouldn't have to use this on any device with ONESHOT_DATA_PERSISTENCE working.
+
 // This option will replace the Game Browser title with the safe code when the document is supposed to appear.
 // The following define (ENTITY_AWARE_OF_EMULATION) assumes you have engaged this,
 //  hence it asks that the player sleep to allow them to exit the 
-#define ONESHOT_GAME_BROWSER_SHOWS_SAFE_CODE
+// #define ONESHOT_GAME_BROWSER_SHOWS_SAFE_CODE
 
 // This option will replace STR_STILL_HAVING_TROUBLE with an altered message that hints to the location
 //  of the new safe code in the Game Browser. This is as best as I can do without altering game event-code.
+// (By "best" I mean the best balance between avoiding modifying the work and making it actually usable.)
 // #define ONESHOT_ENTITY_AWARE_OF_EMULATION
 
 // This option will replace STR_DO_YOU_UNDERSTAND with an absolute spoiler to the safe code,
@@ -47,6 +73,9 @@
 // (SOME EDITS LATER: Basically necessary because the Entity
 //   refuses to let Niko sleep until a progression point.
 //  Fun for debugging. Not.)
+// (FURTHER EDITS LATER: Actually by the time they reach the safe
+//   they are 100% guaranteed to be capable of sleep.
+//  If they know about the bed in the first place.)
 //#define ONESHOT_ABSOLUTELY_CHEAT_SINCE_WE_CANT_META
 
 // ----

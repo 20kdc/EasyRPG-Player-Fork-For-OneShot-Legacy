@@ -50,4 +50,10 @@ void oneshot_ser_leavewindow();
 // The function would be:
 bool oneshot_ser_trymsgbox(const char * text, const char * title, int msg_type, void (*cb)(void * a, bool result), void * userdata);
 // The callback would be used to set a killswitch in scene_osmb, and potentially set the question return value.
+
+// It's assumed that username and computer are 256-long buffers.
+// Both strings are zero-terminated after this function's done with them,
+//  as they should be.
+void oneshot_ser_getcomputer(char * username, char * computer);
+
 #endif

@@ -156,8 +156,12 @@ void util_updateQuitMessage() {
 }
 
 void oneshot_preinit() {
-	//puts("OneShot preinit function called,");
-	//puts("if you are running this on the wrong game: this is your chance to back out.");
+	Output::Debug("Oneshot preinit function called. If not playing Oneshot, I suggest you stop now.");
+#ifdef ONESHOT_DATA_PERSISTENCE
+	Output::Debug("Data persistence is enabled. That is, you only have one shot.");
+#else
+	Output::Debug("Data persistence is disabled.");
+#endif
 	// To test safe_code logic
 	// (usually set to -1 on the line before the call here, which disables it.)
 	// Player::safe_code = 1;
@@ -170,17 +174,35 @@ void oneshot_func_init() {
 	// Unsure on this
 	for (int i = 0; i < 20; i++)
 		Game_Switches[i + 1] = false;
+
 	// Computer-player-name-thing needs doing
-	// For now use a test string that everybody testing will recognize
-	strcpy(username, "Pancake");
-	usernameSize = 8;
+
+	char computer[256]; // For George
+
+	oneshot_ser_getcomputer(username, computer);
+	usernameSize = strlen(username) + 1;
+
+	unsigned int george = 0;
+
+	char * computerptr = computer;
+
+	// One of those cases where the only right thing to do is use oneshot-legacy code (more or less)
+	// Though this will return inaccurate results for UTF-8'd names.
+	// ...I really do hope that Windows actually gives UTF-8 here instead of some nonsense.
+	while (*computerptr) {
+		unsigned char c = *(computerptr++);
+		george += c;
+	}
+
+	george %= 6;
+	Game_Variables[ONESHOT_VAR_GEORGE] = george + 1;
+
 	// TPlayerNameT stuff happens now
 	std::stringstream unstr;
 	unstr << username;
 	Main_Data::game_data.actors[1].name = unstr.str();
 	// Final bits & pieces
 	Game_Variables[ONESHOT_VAR_ENDING] = ending;
-	Game_Variables[ONESHOT_VAR_GEORGE] = ((rand() & 0x7FFF) % 6) + 1; // not quite accurate but ok
 	gameStarted = 1;
 	isInGame = 1;
 }
