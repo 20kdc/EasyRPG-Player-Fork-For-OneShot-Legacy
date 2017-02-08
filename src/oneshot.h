@@ -7,7 +7,7 @@
 // -- The following configure the oneshot_ser module:
 
 // Is <stdio.h> FILE* available? (If not, the saved game is held in RAM.)
-#define ONESHOT_DATA_PERSISTANCE
+#define ONESHOT_DATA_PERSISTENCE
 
 // This is configuration for saving
 // The defaults right now are awful, but... better ideas, anyone?
