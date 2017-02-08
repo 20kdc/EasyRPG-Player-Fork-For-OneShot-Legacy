@@ -48,6 +48,6 @@ void oneshot_ser_leavewindow();
 // (remember that message boxes are pushed in reverse order)
 
 // The function would be:
-// bool oneshot_ser_trymsgbox(const char * text, const char * title, int msg_type, void (*cb)(void * a, bool result), void * userdata);
+bool oneshot_ser_trymsgbox(const char * text, const char * title, int msg_type, void (*cb)(void * a, bool result), void * userdata);
 // The callback would be used to set a killswitch in scene_osmb, and potentially set the question return value.
 #endif

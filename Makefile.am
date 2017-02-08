@@ -152,7 +152,7 @@ libeasyrpg_player_la_SOURCES = \
 	src/oneshot.cpp \
 	src/oneshot.h \
 	src/oneshot_info.h \
-	src/oneshot_ser_ram.cpp \
+	src/oneshot_ser.cpp \
 	src/oneshot_ser.h \
 	src/picojson.h \
 	src/pixel_format.h \

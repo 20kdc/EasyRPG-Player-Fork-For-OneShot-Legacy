@@ -47,30 +47,14 @@
 // However, they could smooth out the experience because we can't do meta-things on 3DS.
 // Your choice, `whoami`.
 
-// This option will replace the Game Browser title with the safe code when the document is supposed to appear.
-// The following define (ENTITY_AWARE_OF_EMULATION) assumes you have engaged this,
-//  hence it asks that the player sleep to allow them to exit the 
-#define GAME_BROWSER_SHOWS_SAFE_CODE
-
-// This option will replace STR_STILL_HAVING_TROUBLE with an altered message that hints to the location
-//  of the new safe code in the Game Browser. This is as best as I can do without altering game event-code.
-// #define ENTITY_AWARE_OF_EMULATION
-
-// This option will replace STR_DO_YOU_UNDERSTAND with an absolute spoiler to the safe code,
-//  without having to sleep in order to see it in the Game Browser.
-// (SOME EDITS LATER: Basically necessary because the Entity
-//   refuses to let Niko sleep until a progression point.
-//  Fun for debugging. Not.)
-//#define ABSOLUTELY_CHEAT_SINCE_WE_CANT_META
-
 // -- Start translatables --
 
 #define STR_ONESHOT                 "You only have one shot, %hs."
 #define STR_DO_YOU_UNDERSTAND       "Do you understand what this means?"
 #define STR_STILL_HAVING_TROUBLE    "Still having trouble? Want me to spell it out for you?"
-// Used on platforms where "read that text document" isn't so practical via ENTITY_AWARE_OF_EMULATION.
+// Used on platforms where "read that text document" isn't so practical via ONESHOT_ENTITY_AWARE_OF_EMULATION.
 // The idea is this will convince the player to sleep, which will take them to the Game Browser,
-// which in the case of GAME_BROWSER_SHOWS_SAFE_CODE will lead them to the solution.
+// which in the case of ONESHOT_GAME_BROWSER_SHOWS_SAFE_CODE will lead them to the solution.
 // Notably, this has to happen NOW, before the Entity has started feeding the player
 //  what will turn out to be misinformation (the actual ingame scripts don't have a clue about any of this).
 // (NOTE: This still isn't great as the player might not know of the bed yet. Could read flags???)
@@ -245,7 +229,7 @@ static bool func_MessageBox() {
 		util_saveEnding();
 		break;
 	case 1:
-#ifdef ABSOLUTELY_CHEAT_SINCE_WE_CANT_META
+#ifdef ONESHOT_ABSOLUTELY_CHEAT_SINCE_WE_CANT_META
 		sprintf(buff, "(Meta-element NYI, Code is %06d. --20kdc)", Player::safe_code);
 		util_messagebox(buff, "", MESSAGE_INFO);
 #else
@@ -253,7 +237,7 @@ static bool func_MessageBox() {
 #endif
 		break;
 	case 2:
-#ifndef ENTITY_AWARE_OF_EMULATION
+#ifndef ONESHOT_ENTITY_AWARE_OF_EMULATION
 		util_messagebox(STR_STILL_HAVING_TROUBLE, "", MESSAGE_QUESTION);
 #else
 // This isn't great but it'll help ease out the UX differences required.
@@ -355,8 +339,11 @@ static bool func_Load() {
 	return true;
 }
 static bool func_ReadItem() {
-	if (!performing_load)
+	if (!performing_load) {
+		// Just in case.
+		Game_Variables[ONESHOT_VAR_RETURN] = 0;
 		return true;
+	}
 	if ((Game_Variables[ONESHOT_VAR_RETURN] = oneshot_ser_loadItem()) == 0) {
 		// End of save-read, automatically wipes.
 		// oneshot_ser has no reason to need to know these quirks.
@@ -370,7 +357,7 @@ static bool func_Document() {
 	// This is very big for hopefully obvious reasons.
 	char document_building_buffer[0x10000];
 	// you're welcome
-#ifdef GAME_BROWSER_SHOWS_SAFE_CODE
+#ifdef ONESHOT_GAME_BROWSER_SHOWS_SAFE_CODE
 	Player::safe_code = Game_Variables[ONESHOT_VAR_SAFE_CODE];
 #endif
 	sprintf(document_building_buffer, "%s%06d%s", oneshot_text_1, Game_Variables[ONESHOT_VAR_SAFE_CODE], oneshot_text_2);
