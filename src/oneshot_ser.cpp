@@ -25,7 +25,7 @@
  */
 
 #include <string.h>
-#include "oneshot.h"
+#include "oneshot.h" // Includes configuration.
 #include "oneshot_ser.h"
 #include "output.h"
 
