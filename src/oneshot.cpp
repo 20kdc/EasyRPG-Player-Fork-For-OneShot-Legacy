@@ -127,13 +127,11 @@ static bool performing_load = false;
 // This is just temporary, and used to build a messagebox chain.
 static std::shared_ptr<Scene> messagebox_current;
 
-#define MESSAGE_INFO 0
-#define MESSAGE_WARNING 0
-#define MESSAGE_ERROR 0
-#define MESSAGE_QUESTION 1
+// This is basically a useless variable needed to keep something in memory
+static FileRequestBinding system_request_id;
 
 static void util_messagebox(const char * text, const char * title, int type) {
-	std::shared_ptr<Scene> m = std::make_shared<Scene_OSMB>(text, type == MESSAGE_QUESTION, messagebox_current);
+	std::shared_ptr<Scene> m = std::make_shared<Scene_OSMB>(text, title, type, messagebox_current);
 	messagebox_current = m;
 }
 
@@ -148,6 +146,9 @@ int util_loadEnding() {
 	return oneshot_ser_loadEnding();
 }
 void util_saveEnding() {
+	Output::Debug("Saving ending %i", ending);
+	if (oneshot)
+		Output::Debug("OneShot flag set");
 	if (!forceEnding) {
 		if (oneshot && (ending <= ENDING_DEJAVU))
 			ending = ENDING_DEAD;
@@ -155,12 +156,24 @@ void util_saveEnding() {
 			ending = ENDING_DEJAVU;
 	}
 	if (ending != ENDING_BEGINNING) {
-		int endingOld = util_loadEnding();
-		if ((ending == ENDING_DEAD) && (endingOld == ENDING_DEAD)) {
-			oneshot_ser_wipeSave();
-			ending = ENDING_DEJAVU;
+		// The trouble here is:
+		// this function is going to get called twice.
+		// And when it gets called twice in a row with ENDING_DEAD,
+		// no matter the circumstance,
+		// things don't work right.
+		// Now, I'm not quite sure if thread_detach just never gets called
+		//  yet things just work fine.
+		// Evidence is looking inconsistent.
+		// So, with that noted, here's the 'if'.
+		if (!oneshot) {
+			int endingOld = util_loadEnding();
+			if ((ending == ENDING_DEAD) && (endingOld == ENDING_DEAD)) {
+				oneshot_ser_wipeSave();
+				ending = ENDING_DEJAVU;
+			}
 		}
 		//printf("'saving' val %i\n", ending);
+		Output::Debug("Actually saving ending %i", ending);
 		oneshot_ser_saveEnding(ending);
 	}
 }
@@ -282,7 +295,7 @@ static bool func_MessageBox() {
 		break;
 	case 1:
 #ifdef ONESHOT_ABSOLUTELY_CHEAT_SINCE_WE_CANT_META
-		sprintf(buff, "(Meta-element NYI, Code is %06d. --20kdc)", Player::safe_code);
+		sprintf(buff, "(Meta-element NYI, Code is %06d. --20kdc)", Game_Variables[ONESHOT_VAR_SAFE_CODE]);
 		util_messagebox(buff, "", MESSAGE_INFO);
 #else
 		util_messagebox(STR_DO_YOU_UNDERSTAND, "", MESSAGE_QUESTION);
@@ -391,13 +404,13 @@ static bool func_Load() {
 			func_SetNameEntry();
 			val = 2; // special return for this case.
 		}
+
+		performing_load = true;
+		oneshot = 1;
+		util_updateQuitMessage();
+		ending = ENDING_DEAD;
 	}
 	Game_Variables[ONESHOT_VAR_RETURN] = val;
-
-	performing_load = true;
-	oneshot = 1;
-	util_updateQuitMessage();
-	ending = ENDING_DEAD;
 	return true;
 }
 static bool func_ReadItem() {
@@ -469,12 +482,17 @@ bool oneshot_func_exec() {
 	return r;
 }
 
+static void oneshot_setsystemnamefromresult(FileRequestResult* result) {
+	Game_System::SetSystemName(result->file);
+}
+
 static void oneshot_titlescreen_init() {
 	// Due to the incompatibility between OneShot's "the game closes",
 	//  and EasyRPG's "back to menu",
 	// this seems like the best solution until I have save/load implemented
 	// (Actually it's the best solution I can think of given later work on meta-stuff)
 	ending = util_loadEnding();
+	Output::Debug("Titlescreen code was hit. Loaded ending as %i.", ending);
 	if (ending <= ENDING_DEJAVU) {
 		if (oneshot)
 			ending = ENDING_DEAD;
@@ -482,9 +500,16 @@ static void oneshot_titlescreen_init() {
 			ending = ENDING_DEJAVU;
 		util_saveEnding();
 	}
-	Output::Debug("Titlescreen code was hit. Loaded ending as %i.", ending);
+	Output::Debug("Titlescreen code finished potentially saving ending.");
 	isInGame = 0;
 	oneshot = 0;
+	// the windowskin override for ENDING_TRAPPED
+	if (ending == ENDING_TRAPPED) {
+		FileRequestAsync* request = AsyncHandler::RequestFile("System", "title_stay");
+		request->SetImportantFile(true);
+		system_request_id = request->Bind(&oneshot_setsystemnamefromresult);
+		request->Start();
+	}
 }
 
 const char * oneshot_titlescreen() {
@@ -517,7 +542,8 @@ const char * oneshot_titlebgm() {
 	}
 	return "MyBurdenIsLight";
 }
-const char * oneshot_closewindowprompt() {
+
+static const char * oneshot_closewindowprompt() {
 	if (isInGame && (ending == ENDING_DEAD)) {
 		if (oneshot) {
 			return STR_NIKO_WILL_DIE;
@@ -527,9 +553,8 @@ const char * oneshot_closewindowprompt() {
 	}
 	return 0;
 }
+
 const char * oneshot_exitgameprompt() {
-	// Since 'exit game' now == 'close game' to prevent title caching issues,
-	// it's probably best just to do this.
 	return quitMsgPtr;
 }
 
@@ -572,6 +597,7 @@ int oneshot_override_closing() {
 			// Commence the guilt-tripping.
 			// (Has to happen after the quit because it'll nudge the mbc by 1)
 			util_messagebox(ccc, "", MESSAGE_INFO);
+			util_messagebox_end();
 			return 1;
 		}
 		if (ccc) {
@@ -589,6 +615,10 @@ void oneshot_fake_quit_handler() {
 	// (Ok, it seems this *is required* for the proper sequence of:
 	//  *kill niko* -> dead, says "you killed niko" ->
 	//  *magically comes back to life only after you've been informed that you murdered Niko*)
+	
+	// Ok, so now I've gotten things generally working, I was testing the 
+	// oneshot flag, and, uh, this has gone back to not doing it's job again.
+
 	util_saveEnding();
 	// ---Post-quit-reset. This should reset everything as if the Player had been newly restarted.---
 	oneshot = 0;

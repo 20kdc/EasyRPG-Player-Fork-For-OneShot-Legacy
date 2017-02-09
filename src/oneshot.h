@@ -6,6 +6,9 @@
 
 // -- The following configure the oneshot_ser module:
 
+// Messageboxes in SDL2 available?
+#define ONESHOT_SDL2_MSGBOX
+
 // Is <stdio.h> FILE* available? (If not, the saved game is held in RAM.)
 #define ONESHOT_DATA_PERSISTENCE
 
@@ -92,6 +95,11 @@
 #define ONESHOT_VAR_SAFE_CODE 29
 #define ONESHOT_VAR_GEORGE 47
 
+#define MESSAGE_INFO 0
+#define MESSAGE_WARNING 1
+#define MESSAGE_ERROR 2
+#define MESSAGE_QUESTION 3
+
 void oneshot_preinit();
 void oneshot_func_init();
 // If this returns true, the script continues,
@@ -101,6 +109,8 @@ bool oneshot_func_exec();
 const char * oneshot_titlescreen();
 void oneshot_titlescreen_special_ready();
 const char * oneshot_titlebgm();
+
+// Note: This is not the close window prompt, and that's only used internally
 const char * oneshot_exitgameprompt();
 
 std::string oneshot_process_text(const std::string & inp);

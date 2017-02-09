@@ -31,7 +31,8 @@
 
 Scene_End::Scene_End(const char * txt, bool dos) {
 	if (!txt) {
-		text = "<FIXME>";
+		// Use default text
+		text = oneshot_exitgameprompt();
 	} else {
 		text = txt;
 	}

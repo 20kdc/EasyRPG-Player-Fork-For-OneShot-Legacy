@@ -47,9 +47,13 @@ void oneshot_ser_leavewindow();
 // Notably this should be done in update & render, so that the correct sequence occurs.
 // (remember that message boxes are pushed in reverse order)
 
-// The function would be:
-bool oneshot_ser_trymsgbox(const char * text, const char * title, int msg_type, void (*cb)(void * a, bool result), void * userdata);
-// The callback would be used to set a killswitch in scene_osmb, and potentially set the question return value.
+#define ONESHOT_SER_MSGBOX_UNFINISHED -1
+#define ONESHOT_SER_MSGBOX_NO 0
+#define ONESHOT_SER_MSGBOX_YES 1
+
+// Notably, the strings should be duplicated in here.
+void * oneshot_ser_trymsgbox(const char * text, const char * title, int msg_type);
+int oneshot_ser_msgbox_update(void * userdata);
 
 // It's assumed that username and computer are 256-long buffers.
 // Both strings are zero-terminated after this function's done with them,

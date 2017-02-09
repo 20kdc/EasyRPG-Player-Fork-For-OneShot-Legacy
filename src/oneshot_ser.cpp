@@ -29,6 +29,10 @@
 #include "oneshot_ser.h"
 #include "output.h"
 
+#ifdef ONESHOT_SDL2_MSGBOX
+#include <SDL.h>
+#endif
+
 #ifndef ONESHOT_DATA_PERSISTENCE
 static int oneshot_ser_ending = 0;
 
@@ -256,10 +260,43 @@ void oneshot_ser_leavewindow() {
 	Output::Debug("Niko walks off the screen...");
 }
 
-bool oneshot_ser_trymsgbox(const char * text, const char * title, int msg_type, void (*cb)(void * a, bool result), void * userdata) {
+int oneshot_last_messagebox_value = 0;
+
+void * oneshot_ser_trymsgbox(const char * text, const char * title, int msg_type) {
+#ifdef ONESHOT_SDL2_MSGBOX
+	int flags = 0;
+	int notgood = 0;
+	switch (msg_type) {
+		case MESSAGE_INFO:
+			flags = SDL_MESSAGEBOX_INFORMATION;
+			break;
+		case MESSAGE_WARNING:
+			flags = SDL_MESSAGEBOX_WARNING;
+			break;
+		case MESSAGE_ERROR:
+			flags = SDL_MESSAGEBOX_ERROR;
+			break;
+		case MESSAGE_QUESTION:
+			// NOT GOOD
+			flags = SDL_MESSAGEBOX_INFORMATION;
+			notgood = 1;
+			break;
+	}
+	SDL_ShowSimpleMessageBox(flags, title, text, NULL);
+	if (notgood)
+		return 0;
+	oneshot_last_messagebox_value = ONESHOT_SER_MSGBOX_YES;
+	return &oneshot_last_messagebox_value;
+#else
 	// This basic backend is enough to run the game, but meta stuff doesn't work here.
 	// (let's just hope you remember that wallpaper 'kay)
-	return false;
+	return 0;
+#endif
+}
+
+int oneshot_ser_msgbox_update(void * userdata) {
+	// This only runs for SDL2
+	return * ((int *) userdata);
 }
 
 void oneshot_ser_getcomputer(char * username, char * computer) {

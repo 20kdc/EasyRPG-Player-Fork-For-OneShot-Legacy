@@ -34,12 +34,10 @@ public:
 	/**
 	 * Constructor.
 	 */
-	Scene_OSMB(const char * s, bool yn, std::shared_ptr<Scene> const& next_scene);
+	Scene_OSMB(const char * s, const char * s2, int yn, std::shared_ptr<Scene> const& next_scene);
 
 	void Start() override;
 	void Update() override;
-
-	void OnWindowskinReady(FileRequestResult* result);
 
 	/**
 	 * Creates the Window displaying the yes and no option.
@@ -58,14 +56,18 @@ private:
 	/** Command window containing the yes and no option. */
 	std::unique_ptr<Window_Command> command_window;
 	FileRequestBinding request_id;
-	std::string str;
-	bool yesNo;
+	std::string str, str2;
+	int yesNo;
+	void * tryPtr;
 	// These 3 variables are safety checks to prevent pretty major issues
 	bool hasInputControl;
 	bool answered;
 	int creationMBC;
 	// Used to chain scenes without the danger of 2-pushes-1-frame
 	std::shared_ptr<Scene> nextBox;
+
+	void OnWindowskinReady(FileRequestResult* result);
+	void FinishMsgbox();
 };
 
 #endif
