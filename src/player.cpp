@@ -404,7 +404,8 @@ void Player::ParseCommandLine(int argc, char *argv[]) {
 	LPWSTR *argv_w = CommandLineToArgvW(GetCommandLineW(), &argc);
 #endif
 
-	engine = EngineNone;
+	// Default to a good setting for OneShot
+	engine = EngineRpg2k3 | EngineMajorUpdated | EngineRpg2k3E;
 #ifdef EMSCRIPTEN
 	window_flag = true;
 #else
