@@ -22,6 +22,7 @@
 #include "cache.h"
 #include "game_system.h"
 #include "game_variables.h"
+#include "game_map.h"
 #include "input.h"
 #include "scene_osmb.h"
 #include "scene_menu.h"
@@ -56,12 +57,14 @@ void Scene_OSMB::Update() {
 		Game_System::SePlay(Game_System::GetSystemSE(Game_System::SFX_Decision));
 		switch (command_window->GetIndex()) {
 		case 0: // Yes
-			Game_Variables[ONESHOT_VAR_RETURN] = 6;
+			Game_Variables[ONESHOT_VAR_RETURN] = 1;
+			Game_Map::SetNeedRefresh(Game_Map::Refresh_All);
 			Scene::Pop();
 			oneshot_global_messagebox_count--;
 			break;
 		case 1: // No
-			Game_Variables[ONESHOT_VAR_RETURN] = 7;
+			Game_Variables[ONESHOT_VAR_RETURN] = 0;
+			Game_Map::SetNeedRefresh(Game_Map::Refresh_All);
 			Scene::Pop();
 			oneshot_global_messagebox_count--;
 			break;
