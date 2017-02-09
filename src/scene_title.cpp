@@ -38,6 +38,7 @@
 Scene_Title::Scene_Title() {
 	type = Scene::Title;
 	oneshotSaysSpecialCase = false;
+	oneshotSaysSpecialCase2 = false;
 }
 
 void Scene_Title::Start() {
@@ -91,9 +92,18 @@ void Scene_Title::Suspend() {
 
 void Scene_Title::Update() {
 	if (oneshotSaysSpecialCase) {
-		// OneShot wants this frame all to itself
+		// OneShot wants 2 frames all to itself.
+		// (First one to make sure that the scenegraph has settled properly, second for gone)
+		// Do as it says.
 		oneshotSaysSpecialCase = false;
+		oneshotSaysSpecialCase2 = true;
+		return;
+	}
+	if (oneshotSaysSpecialCase2) {
+		oneshotSaysSpecialCase2 = false;
+		Output::Debug("Going to perform OneShot special case now...");
 		oneshot_titlescreen_special_ready();
+		Output::Debug("Completed.");
 		return;
 	}
 	if (Player::battle_test_flag) {
@@ -123,6 +133,14 @@ void Scene_Title::Update() {
 		case 2: // Exit Game
 			CommandShutdown();
 		}
+	}
+}
+
+void Scene_Title::Kick() {
+	oneshotSaysSpecialCase = true;
+	// Blank out the title screen *now*. This whole function is Oneshot-specific.
+	if (title) {
+		title->SetVisible(false);
 	}
 }
 
@@ -192,7 +210,8 @@ void Scene_Title::PlayTitleMusic() {
 	// Workaround Android problem: BGM doesn't start when game is started again
 	Game_System::BgmStop();
 	// Play BGM
-	Game_System::BgmPlay(Data::system.title_music);
+	if (!((oneshotSaysSpecialCase) || (oneshotSaysSpecialCase2)))
+		Game_System::BgmPlay(Data::system.title_music);
 }
 
 bool Scene_Title::CheckValidPlayerLocation() {

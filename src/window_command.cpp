@@ -20,6 +20,7 @@
 #include "color.h"
 #include "bitmap.h"
 #include "util_macro.h"
+#include "scene.h"
 
 static int CalculateWidth(const std::vector<std::string>& commands, int width) {
 	if (width < 0) {
@@ -54,7 +55,13 @@ void Window_Command::Refresh() {
 
 void Window_Command::DrawItem(int index, Font::SystemColor color) {
 	contents->ClearRect(Rect(0, 16 * index, contents->GetWidth() - 0, 16));
-	contents->TextDraw(0, 16 * index + 2, color, commands[index]);
+	// See window_help.cpp for the logic here
+	if (Scene::Find(Scene::End)) {
+		Color c(255, 255, 255, 255);
+		contents->TextDraw(0, 16 * index + 2, c, commands[index]);
+	} else {
+		contents->TextDraw(0, 16 * index + 2, color, commands[index]);
+	}
 }
 
 void Window_Command::DisableItem(int i) {

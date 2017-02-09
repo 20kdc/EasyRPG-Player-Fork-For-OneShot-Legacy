@@ -45,7 +45,7 @@ Scene_OSMB::Scene_OSMB(const char * text, bool yn, std::shared_ptr<Scene> const&
 void Scene_OSMB::Start() {
 	CreateCommandWindow();
 	CreateHelpWindow();
-	FileRequestAsync* request = AsyncHandler::RequestFile("System", "title");
+	FileRequestAsync* request = AsyncHandler::RequestFile("System", "pc");
 	request_id = request->Bind(&Scene_OSMB::OnWindowskinReady, this);
 	request->Start();
 }
