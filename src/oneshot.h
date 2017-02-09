@@ -99,6 +99,7 @@ void oneshot_func_init();
 // This allows for "freezing" the game.
 bool oneshot_func_exec();
 const char * oneshot_titlescreen();
+void oneshot_titlescreen_special_ready();
 const char * oneshot_titlebgm();
 const char * oneshot_exitgameprompt();
 

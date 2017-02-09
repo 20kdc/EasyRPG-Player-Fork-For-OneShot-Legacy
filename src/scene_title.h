@@ -103,6 +103,9 @@ private:
 	/** Contains the state of continue button. */
 	bool continue_enabled;
 
+	// If this is true, OneShot wants the special case function called on next update
+	bool oneshotSaysSpecialCase;
+
 	FileRequestBinding request_id;
 };
 
