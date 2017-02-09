@@ -36,5 +36,10 @@ namespace Text {
 	 * Draws text using the specified color on dest
 	 */
 	void Draw(Bitmap& dest, int x, int y, Color color, FontRef font, std::string const& text);
+
+	/**
+	 * Works out the minimum size for some text. Should be alignment-independent?
+	 */
+	Rect GetSize(FontRef font, std::string const& text);
 }
 #endif

@@ -154,6 +154,12 @@ void Scene::Push(std::shared_ptr<Scene> const& new_scene, bool pop_stack_top) {
 	instances.push_back(new_scene);
 	instance = new_scene;
 
+	// As I understand it this situation *WILL* lead to errant behavior,
+	// why this warning didn't already exist I do not know!
+	if (push_pop_operation == ScenePushed)
+		if (instances[instances.size() - 2]->type != Scene::SceneType::Null)
+			Output::Warning("A Scene of type %s was pushed when a scene was already being pushed this frame.", scene_names[new_scene->type]);
+
 	push_pop_operation = ScenePushed;
 
 	/*Output::Debug("Scene Stack after Push:");

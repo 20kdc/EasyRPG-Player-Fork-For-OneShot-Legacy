@@ -125,3 +125,25 @@ void Text::Draw(Bitmap& dest, int x, int y, Color color, FontRef font, std::stri
 		next_glyph_pos += font->GetSize(glyph).width;
 	}
 }
+
+// Alignment doesn't matter here since it should never affect size
+Rect Text::GetSize(FontRef font, std::string const& text) {
+	Rect working(0, 0, 0, 0);
+	int next_glyph_pos = 0;
+	int y = 0;
+	for (char32_t c : Utils::DecodeUTF32(text)) {
+		std::u32string const glyph = std::u32string(1, c);
+		Rect r = font->GetSize(glyph);
+		int maxw = next_glyph_pos + r.width;
+		int maxh = y + r.height;
+		working.width = (working.width > maxw) ? working.width : maxw;
+		working.height = (working.height > maxh) ? working.height : maxh;
+		if (c == U'\n') {
+			y += r.height;
+			next_glyph_pos = 0;
+			continue;
+		}
+		next_glyph_pos += r.width;
+	}
+	return working;
+}

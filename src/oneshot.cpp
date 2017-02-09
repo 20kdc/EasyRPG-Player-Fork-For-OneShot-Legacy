@@ -62,14 +62,15 @@
 #define STR_STILL_HAVING_TROUBLE_EXTENDED2 "Perhaps you should let Niko sleep for a while, as you ponder the issue."
 //
 #define STR_SURELY_YOU_KNOW         "Surely you know where to find it now?"
-#define STR_STILL_PLANNING          "You're still planning on saving the world, aren't you?"
+#define STR_STILL_PLANNING          "You're still planning on saving the world,\naren't you?"
 #define STR_SUFFERING               "The world is suffering."
-#define STR_GONE                    "The savior is gone. All hope for the world is lost."
+#define STR_GONE                    "The savior is gone.\nAll hope for the world is lost."
 #define STR_WOULDA_REALIZED         "Well, you would have realized it sooner or later."
 #define STR_HAD_ENOUGH              "I've had enough of this world. Haven't you?"
-#define STR_DESTROY_IT              "Either that lightbulb will be destroyed, or Niko will be killed."
+// some newline revisements here because there isn't much screenspace.
+#define STR_DESTROY_IT              "Either that lightbulb will be destroyed,\nor Niko will be killed."
 #define STR_QUIT_NOW                "I'll make sure you never reach the end.\nQuit now, and save yourself the effort."
-#define STR_BAD_DREAM               "If Niko smashes the bulb and leaves, it will just be like waking up from a bad dream."
+#define STR_BAD_DREAM               "If Niko smashes the bulb and leaves,\nit will just be like waking up from a bad dream."
 #define STR_MISERABLE               "Niko will be miserable in this world."
 #define STR_YOU_MONSTER             "You do care about Niko, don't you?"
 #define STR_NIKO_WILL_DIE           "If you quit now, Niko will die. Continue?"
@@ -111,12 +112,19 @@ static uint32_t usernameSize = sizeof(username);
 static const char * quitMsgPtr = QUIT_MESSAGE;
 
 // Used to freeze/unfreeze the Script Interpreter during message boxes
+// Notably the value of this is 100% controlled by scene_OSMB outside of a reset
 int oneshot_global_messagebox_count = 0;
 // Used as a flag by func_MessageBox to see if this is a re-execution
 static bool messagebox_running = false;
+// Used to wait an additional frame to try and prevent the script from messing up the scene-stack
+static bool messagebox_terminating = false;
 // OneShot performs an additional (and invalid) LoadItem for some reason
 // Let's just pretend that didn't happen
 static bool performing_load = false;
+
+// Which messagebox was last pushed (that is, which is the first)?
+// This is just temporary, and used to build a messagebox chain.
+static std::shared_ptr<Scene> messagebox_current;
 
 #define MESSAGE_INFO 0
 #define MESSAGE_WARNING 0
@@ -124,8 +132,15 @@ static bool performing_load = false;
 #define MESSAGE_QUESTION 1
 
 static void util_messagebox(const char * text, const char * title, int type) {
-	oneshot_global_messagebox_count++;
-	Scene::Push(std::make_shared<Scene_OSMB>(text, type == MESSAGE_QUESTION));
+	std::shared_ptr<Scene> m = std::make_shared<Scene_OSMB>(text, type == MESSAGE_QUESTION, messagebox_current);
+	messagebox_current = m;
+}
+
+// Confirm that the last messagebox pushed should be the one to appear,
+// and clear the messagebox_current pointer.
+static void util_messagebox_end() {
+	Scene::Push(messagebox_current);
+	messagebox_current.reset();
 }
 
 int util_loadEnding() {
@@ -235,7 +250,14 @@ static bool func_MessageBox() {
 	// Keep the script in limbo till all messageboxes have been confirmed.
 	if (messagebox_running) {
 		messagebox_running = oneshot_global_messagebox_count != 0;
-		return !messagebox_running;
+		// Even after the messagebox is dealt with,
+		//  wait another frame to prevent messagebox "overload".
+		messagebox_terminating = true;
+		return false;
+	}
+	if (messagebox_terminating) {
+		messagebox_terminating = false;
+		return true;
 	}
 
 	char buff[512];
@@ -297,6 +319,10 @@ static bool func_MessageBox() {
 		util_messagebox("messagebox nyi, fixme", "", MESSAGE_INFO);
 		break;
 	}
+	// By this point a messagebox must have been pushed.
+	// They should be pushed in reverse order -
+	// the magical linked list stuff *should* do all the work
+	util_messagebox_end();
 	messagebox_running = true;
 	return false;
 }
@@ -390,10 +416,7 @@ static bool func_End() {
 	ending = Game_Variables[ONESHOT_VAR_ARG1];
 	forceEnding = 1;
 	util_saveEnding();
-	Scene::PopUntil(Scene::Title);
-	Scene::Pop();
-	oneshot_fake_quit_handler();
-	return false; // Try to get the script interpreter to break out
+	return true;
 }
 static bool func_SetCloseEnabled() {
 	// NYI
@@ -480,13 +503,7 @@ const char * oneshot_closewindowprompt() {
 const char * oneshot_exitgameprompt() {
 	// Since 'exit game' now == 'close game' to prevent title caching issues,
 	// it's probably best just to do this.
-	// (Kind of relied upon anyway by oneshot_override_closing,
-	//  because Scene_End always uses this no matter what.
-	//  An idea would be to work on Scene_End to make it like Scene_OSMB, taking a const char * ptr.)
-	const char * t = oneshot_closewindowprompt();
-	if (t)
-		return t;
-	return "But you've only just started playing!";
+	return quitMsgPtr;
 }
 
 std::string oneshot_process_text(const std::string & inp) {
@@ -519,12 +536,15 @@ int oneshot_override_closing() {
 	if (Scene::Find(Scene::Title)) {
 		const char * ccc = oneshot_closewindowprompt();
 		if (ccc == STR_YOU_KILLED_NIKO) {
+			// This is better than pop-till-gamebrowser,
+			//  because the game browser may not exist.
 			Scene::PopUntil(Scene::Title);
 			Scene::Pop();
-			// Commence the guilt-tripping.
-			util_messagebox(ccc, "", MESSAGE_INFO);
-			// and do this while we're waiting.
+			// Do this while we're waiting
 			oneshot_fake_quit_handler();
+			// Commence the guilt-tripping.
+			// (Has to happen after the quit because it'll nudge the mbc by 1)
+			util_messagebox(ccc, "", MESSAGE_INFO);
 			return 1;
 		}
 		if (ccc) {
@@ -553,5 +573,8 @@ void oneshot_fake_quit_handler() {
 	usernameSize = sizeof(username);
 	oneshot_global_messagebox_count = 0;
 	messagebox_running = false;
+	messagebox_terminating = false;
 	performing_load = false;
+	// Deallocate all messageboxes.
+	messagebox_current.reset();
 }
