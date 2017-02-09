@@ -188,12 +188,20 @@ int oneshot_ser_loadBegin(uint8_t * switches, int32_t * vars, char * username, u
 			return 0;
 		}
 		*usernameSize = us;
-		if (*usernameSize) {
-			// just hope the file is valid from this point on *gulp*
+		// just hope the file is valid from this point on *gulp*
+		if (*usernameSize)
 			fread(username, us, 1, oneshot_ser_workingfile);
-			username[us] = 0;
-			return 1;
+		username[us] = 0;
+		fread(switches, 200, 1, oneshot_ser_workingfile);
+		for (int i = 0; i < 100; i++) {
+			// For portability.
+			uint32_t a = fgetc(oneshot_ser_workingfile);
+			uint32_t b = fgetc(oneshot_ser_workingfile) << 8;
+			uint32_t c = fgetc(oneshot_ser_workingfile) << 16;
+			uint32_t d = fgetc(oneshot_ser_workingfile) << 24;
+			vars[i] = (int32_t) (a | b | c | d);
 		}
+		return 1;
 	} else {
 		return 0;
 	}
