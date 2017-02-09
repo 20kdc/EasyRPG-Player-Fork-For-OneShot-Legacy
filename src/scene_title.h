@@ -91,6 +91,11 @@ public:
 	 */
 	void CommandShutdown();
 
+	/**
+	 * Set oneshotSaysSpecialCase to true.
+	 */
+	void Kick();
+
 private:
 	void OnTitleSpriteReady(FileRequestResult* result);
 
@@ -103,8 +108,16 @@ private:
 	/** Contains the state of continue button. */
 	bool continue_enabled;
 
-	// If this is true, OneShot wants the special case function called on next update
+	/**
+	 * If this is true, OneShot wants the special case function called soon.
+	 * (A frame's delay is given to ensure that the scene graph has settled.)
+	 */
 	bool oneshotSaysSpecialCase;
+
+	/**
+	 * If this is true, OneShot wants the special case function called now.
+	 */
+	bool oneshotSaysSpecialCase2;
 
 	FileRequestBinding request_id;
 };

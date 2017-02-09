@@ -13,6 +13,7 @@
 #include "scene.h"
 #include "scene_osmb.h" // messageboxes!
 #include "scene_end.h" // alt-f4 override
+#include "scene_title.h" // If the bulb is broken, scene_title has to be kicked to cause gone().
 #include "player.h" // For access to safe code
 #include "output.h" // Output::Debug()
 
@@ -252,6 +253,8 @@ static void gone() {
 }
 
 static bool func_MessageBox() {
+	// Usually unused.
+	std::shared_ptr<Scene> scene;
 	// Keep the script in limbo till all messageboxes have been confirmed.
 	if (messagebox_running) {
 		messagebox_running = oneshot_global_messagebox_count != 0;
@@ -304,12 +307,17 @@ static bool func_MessageBox() {
 		util_messagebox(STR_STILL_PLANNING, "", MESSAGE_INFO);
 		break;
 	case 5:
-		gone();
-		// oh, this "just" quits the game. Completely.
-		// Including game browser.
-		Scene::PopUntil(Scene::Null);
-		oneshot_fake_quit_handler();
-		break;
+		if (scene = Scene::Find(Scene::Title)) {
+			// First go back to title,
+			// and make sure it won't display anything
+			Scene::PopUntil(Scene::Title);
+			(static_cast<Scene_Title *>(scene.get()))->Kick();
+			oneshot_fake_quit_handler();
+		} else {
+			// How did this happen?
+			Scene::PopUntil(Scene::Null);
+		}
+		return false;
 	case 6:
 		util_messagebox(STR_QUIT_NOW, "", MESSAGE_ERROR);
 		util_messagebox(STR_DESTROY_IT, "", MESSAGE_WARNING);

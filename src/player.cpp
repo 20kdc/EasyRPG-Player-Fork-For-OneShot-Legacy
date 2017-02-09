@@ -408,7 +408,11 @@ void Player::ParseCommandLine(int argc, char *argv[]) {
 #ifdef EMSCRIPTEN
 	window_flag = true;
 #else
+#if RUN_FULLSCREEN
 	window_flag = false;
+#else
+	window_flag = true;
+#endif
 #endif
 	fps_flag = false;
 	debug_flag = false;

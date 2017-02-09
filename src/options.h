@@ -18,6 +18,8 @@
 #ifndef _OPTIONS_H_
 #define _OPTIONS_H_
 
+// NOTE: OneShot-specific options are in oneshot.h
+
 /** Window title to show. */
 #define GAME_TITLE "EasyRPG Player"
 
@@ -43,17 +45,18 @@
 /** Run game in zoom mode. */
 #define RUN_ZOOM 1
 
+// OneShot does not do either, especially given focus is lost during native message boxes
 /**
  * Pause the game process when the player window
  * looses its focus.
  */
-#define PAUSE_GAME_WHEN_FOCUS_LOST 1
+//#define PAUSE_GAME_WHEN_FOCUS_LOST 1
 
 /**
  * Pause the audio process when the player window
  * looses its focus.
  */
-#define PAUSE_AUDIO_WHEN_FOCUS_LOST 1
+//#define PAUSE_AUDIO_WHEN_FOCUS_LOST 1
 
 /** INI configuration filename. */
 #define INI_NAME "RPG_RT.ini"
