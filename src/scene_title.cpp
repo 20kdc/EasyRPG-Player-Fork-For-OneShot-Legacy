@@ -37,6 +37,7 @@
 
 Scene_Title::Scene_Title() {
 	type = Scene::Title;
+	oneshotSaysSpecialCase = false;
 }
 
 void Scene_Title::Start() {
@@ -89,6 +90,12 @@ void Scene_Title::Suspend() {
 }
 
 void Scene_Title::Update() {
+	if (oneshotSaysSpecialCase) {
+		// OneShot wants this frame all to itself
+		oneshotSaysSpecialCase = false;
+		oneshot_titlescreen_special_ready();
+		return;
+	}
 	if (Player::battle_test_flag) {
 		PrepareBattleTest();
 		return;
@@ -130,11 +137,19 @@ void Scene_Title::CreateTitleGraphic() {
 		if (str == "title") {
 			// This was handled differently in oneshot-legacy (file overrides & such all in one bit of logic), but not here.
 			// In this case just handle title management and such all in one function.
-			str = oneshot_titlescreen();
+			const char * ts = oneshot_titlescreen();
+			if (ts) {
+				str = ts;
+			} else {
+				str = "";
+				oneshotSaysSpecialCase = true;
+			}
 		}
-		FileRequestAsync* request = AsyncHandler::RequestFile("Title", str);
-		request_id = request->Bind(&Scene_Title::OnTitleSpriteReady, this);
-		request->Start();
+		if (str != "") {
+			FileRequestAsync* request = AsyncHandler::RequestFile("Title", str);
+			request_id = request->Bind(&Scene_Title::OnTitleSpriteReady, this);
+			request->Start();
+		}
 	}
 }
 

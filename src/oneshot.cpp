@@ -246,6 +246,11 @@ static bool func_SetWallpaper() {
 	return true;
 }
 
+// Run util_messagebox_end() at some point after this
+static void gone() {
+	util_messagebox(STR_GONE, "Fatal Error", MESSAGE_ERROR);
+}
+
 static bool func_MessageBox() {
 	// Keep the script in limbo till all messageboxes have been confirmed.
 	if (messagebox_running) {
@@ -299,10 +304,11 @@ static bool func_MessageBox() {
 		util_messagebox(STR_STILL_PLANNING, "", MESSAGE_INFO);
 		break;
 	case 5:
-		util_messagebox(STR_GONE, "Fatal Error", MESSAGE_ERROR);
-		// oh, this "just" quits the game
-		Scene::PopUntil(Scene::Title);
-		Scene::Pop();
+		gone();
+		// oh, this "just" quits the game. Completely.
+		// Including game browser.
+		Scene::PopUntil(Scene::Null);
+		oneshot_fake_quit_handler();
 		break;
 	case 6:
 		util_messagebox(STR_QUIT_NOW, "", MESSAGE_ERROR);
@@ -475,6 +481,8 @@ static void oneshot_titlescreen_init() {
 
 const char * oneshot_titlescreen() {
 	oneshot_titlescreen_init();
+	if (ending == ENDING_ESCAPED)
+		return 0; // Magic value that gets replaced with "" in the titlescreen code and sets a flag to run oneshot_titlescreen_special_ready()
 	if ((ending == ENDING_DEAD) && (!gameStarted)) {
 		return "title_dead";
 	} else if (ending == ENDING_TRAPPED) {
@@ -482,7 +490,18 @@ const char * oneshot_titlescreen() {
 	}
 	return "title";
 }
+
+void oneshot_titlescreen_special_ready() {
+	// Standard message box procedure can't work here, do something special
+	gone();
+	Scene::PopUntil(Scene::Null);
+	Scene::Push(messagebox_current);
+	messagebox_current.reset();
+}
+
 const char * oneshot_titlebgm() {
+	if (ending == ENDING_ESCAPED)
+		return ""; // Set to blank - do override later
 	if ((ending == ENDING_DEAD) && (!gameStarted)) {
 		return "MyBurdenIsDead";
 	} else if (ending == ENDING_TRAPPED) {
