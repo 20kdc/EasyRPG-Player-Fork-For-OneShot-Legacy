@@ -30,11 +30,16 @@
 #include "util_macro.h"
 #include "bitmap.h"
 #include "oneshot.h"
+#include "output.h"
 
-Scene_OSMB::Scene_OSMB(const char * text, bool yn) {
+Scene_OSMB::Scene_OSMB(const char * text, bool yn, std::shared_ptr<Scene> const& next_scene) {
 	Scene::type = Scene::End;
 	str = text;
 	yesNo = yn;
+	nextBox = next_scene;
+	hasInputControl = false;
+	creationMBC = ++oneshot_global_messagebox_count;
+	answered = false;
 }
 
 void Scene_OSMB::Start() {
@@ -53,21 +58,39 @@ void Scene_OSMB::OnWindowskinReady(FileRequestResult* result) {
 void Scene_OSMB::Update() {
 	command_window->Update();
 
+	if (answered)
+		return;
+
+	bool topStack = oneshot_global_messagebox_count == creationMBC;
+	if (!topStack)
+		hasInputControl = false;
+	if (!hasInputControl) {
+		if (topStack)
+			hasInputControl = true;
+		return;
+	}
+
 	if (Input::IsTriggered(Input::DECISION)) {
 		Game_System::SePlay(Game_System::GetSystemSE(Game_System::SFX_Decision));
 		switch (command_window->GetIndex()) {
 		case 0: // Yes
 			Game_Variables[ONESHOT_VAR_RETURN] = 1;
-			Game_Map::SetNeedRefresh(Game_Map::Refresh_All);
-			Scene::Pop();
-			oneshot_global_messagebox_count--;
 			break;
 		case 1: // No
 			Game_Variables[ONESHOT_VAR_RETURN] = 0;
-			Game_Map::SetNeedRefresh(Game_Map::Refresh_All);
+		}
+		Game_Map::SetNeedRefresh(Game_Map::Refresh_All);
+		oneshot_global_messagebox_count--;
+		answered = true;
+		if (nextBox) {
+			// This may have the side effect of destroying this object.
+			// (The worrying thing is that I'm not sure *when*.)
+			Scene::Push(nextBox, true);
+			return;
+		} else {
+			if (oneshot_global_messagebox_count)
+				Output::Warning("Messagebox-count inconsistent with scene linked list.");
 			Scene::Pop();
-			oneshot_global_messagebox_count--;
-			break;
 		}
 	}
 }
@@ -86,10 +109,13 @@ void Scene_OSMB::CreateCommandWindow() {
 }
 
 void Scene_OSMB::CreateHelpWindow() {
-	int text_size = Font::Default()->GetSize(str).width;
-
-	help_window.reset(new Window_Help((SCREEN_TARGET_WIDTH/2) - (text_size + 16)/ 2,
-									  72, text_size + 16, 32));
+	Rect text_size = Text::GetSize(Font::Default(), str);
+	// 32 + 72 = 104
+	// 14 + 18 = 32
+	int h = text_size.height + 18;
+	
+	help_window.reset(new Window_Help((SCREEN_TARGET_WIDTH/2) - (text_size.width + 16) / 2,
+									  104 - h, text_size.width + 16, h));
 	help_window->SetText(str);
 
 	command_window->SetHelpWindow(help_window.get());

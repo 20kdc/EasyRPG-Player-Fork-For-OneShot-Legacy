@@ -34,7 +34,7 @@ public:
 	/**
 	 * Constructor.
 	 */
-	Scene_OSMB(const char * s, bool yn);
+	Scene_OSMB(const char * s, bool yn, std::shared_ptr<Scene> const& next_scene);
 
 	void Start() override;
 	void Update() override;
@@ -60,6 +60,12 @@ private:
 	FileRequestBinding request_id;
 	std::string str;
 	bool yesNo;
+	// These 3 variables are safety checks to prevent pretty major issues
+	bool hasInputControl;
+	bool answered;
+	int creationMBC;
+	// Used to chain scenes without the danger of 2-pushes-1-frame
+	std::shared_ptr<Scene> nextBox;
 };
 
 #endif
