@@ -381,7 +381,7 @@ void Player::ParseCommandLine(int argc, char *argv[]) {
 #endif
 
 	// Default to a good setting for OneShot
-	engine = EngineRpg2k3 | EngineMajorUpdated | EngineRpg2k3E;
+	engine = EngineRpg2k3 | EngineMajorUpdated | EngineEnglish;
 #ifdef EMSCRIPTEN
 	window_flag = true;
 #else
