@@ -177,16 +177,6 @@ Read detailed instructions at:
 Run the `easyrpg-player` executable from a RPG Maker 2000 or 2003 game
 project folder (same place as `RPG_RT.exe`).
 
-
-## Bug reporting
-
-Available options:
-
-* File an issue at https://github.com/EasyRPG/Player/issues
-* Open a thread at https://community.easyrpg.org/
-* Chat with us via IRC: #easyrpg at irc.freenode.net
-
-
 ## License
 
 EasyRPG Player is free software available under the GPLv3 license. See the file
