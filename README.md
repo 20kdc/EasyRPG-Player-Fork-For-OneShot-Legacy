@@ -1,5 +1,7 @@
 # NOTE:
 
+## Disregard recent commits, these are *just* README.md fixes right now.
+
 ## This was modified by me (20kdc) in order to run the game 'OneShot' (freeware version, not the remake).
 ## As such, it contains much hackery in order to emulate hackery used by that version of OneShot.
 
@@ -13,7 +15,7 @@
 
 ## Finally, I reiterate that this is for the original freeware OneShot, not the remake on Steam.
 
-The code added for this may be considered a derivative of https://github.com/mathewv/oneshot-legacy , the license to which is:
+The code added for this may be considered a derivative of https://github.com/elizagamedev/oneshot-legacy , the license to which is:
 
     The MIT License
     
